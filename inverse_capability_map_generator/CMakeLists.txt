@@ -107,13 +107,18 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(inverse_capability_map_generator
-#   src/${PROJECT_NAME}/inverse_capability_map_generator.cpp
-# )
+add_library(inverse_capability_map_generator_utils
+  src/utils.cpp
+)
 
 ## Declare a cpp executable
-add_executable(inverse_capability_map_generator src/main.cpp)
-target_link_libraries(inverse_capability_map_generator ${EIGEN_LIBRARIES} ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES})
+add_executable(inverse_capability_object_generator src/inverse_capability_object_generator.cpp)
+target_link_libraries(inverse_capability_object_generator
+  inverse_capability_map_generator_utils
+  ${EIGEN_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OCTOMAP_LIBRARIES}
+)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
