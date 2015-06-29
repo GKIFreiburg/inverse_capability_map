@@ -1,0 +1,104 @@
+#ifndef INVERSECAPABILITYOCTREENODE_H
+#define INVERSECAPABILITYOCTREENODE_H
+
+//#include <gtest/gtest.h>
+#include <octomap/OcTreeDataNode.h>
+
+using namespace octomap;
+
+
+class InverseCapability
+{
+  public:
+
+//    FRIEND_TEST(Capability, constructor);
+	InverseCapability(const int theta_resolution);
+	InverseCapability(const std::vector<double> &thetas);
+
+    // setter and getter
+    void setThetas(const std::vector<double> &thetas) { thetas_ =  thetas; }
+    const std::vector<double>& getThetas() const { return thetas_; }
+
+    void setPercent(const unsigned int index, double percent);
+    double getPercent(const unsigned int index);
+
+//    FRIEND_TEST(Capability, equalityOperators);
+    bool operator==(const InverseCapability &other) const;
+    bool operator!=(const InverseCapability &other) const;
+
+    // Return the index with the highest percentage
+//    FRIEND_TEST(Capability, isDirectionPossible);
+    unsigned int getMaxPercentIndex() const;
+
+  protected:
+
+    // vector containing the different percentages for different thetas
+    std::vector<double> thetas_;
+};
+
+
+class InverseCapabilityOcTreeNode : public OcTreeDataNode<InverseCapability>
+{
+  public:
+
+    // Constructors
+	InverseCapabilityOcTreeNode();
+	InverseCapabilityOcTreeNode(InverseCapability inv_capa);
+	InverseCapabilityOcTreeNode(const InverseCapabilityOcTreeNode &rhs) : OcTreeDataNode<InverseCapability>(rhs) { }
+
+    ~InverseCapabilityOcTreeNode();
+
+//    FRIEND_TEST(CapabilityOcTreeNode, equalityOperator);
+    bool operator==(const InverseCapabilityOcTreeNode &rhs) const
+    {
+        return (rhs.value == value);
+    }
+
+    // children
+
+//    FRIEND_TEST(CapabilityOcTreeNode, children);
+    bool createChild(unsigned int i);
+//
+//    inline CapabilityOcTreeNode* getChild(unsigned int i)
+//    {
+//        return static_cast<CapabilityOcTreeNode*>(OcTreeDataNode<Capability>::getChild(i));
+//    }
+//
+//    inline const CapabilityOcTreeNode* getChild(unsigned int i) const
+//    {
+//        return static_cast<const CapabilityOcTreeNode*>(OcTreeDataNode<Capability>::getChild(i));
+//    }
+//
+//
+//    // TODO: should not be overwritten, node only gets pruned when value is equal for all children (uncomment if problems arise)
+//    // bool collapsible() { return false; }
+//    // bool pruneNode() { return false; }
+//    // void expandNode() { }
+//
+//    FRIEND_TEST(CapabilityOcTreeNode, set_getCapability);
+//
+//    // setter/getter for Capability (value derived from OcTreeDataNode)
+//    inline void setCapability(Capability capability) { value = capability; }
+//    inline void setCapability(CAPABILITY_TYPE type, double phi, double theta, double halfOpeningAngle, double shapeFitError = 0.0)
+//    {
+//        value = Capability(type, phi, theta, halfOpeningAngle, shapeFitError);
+//    }
+//
+//    inline Capability getCapability() const { return value; }
+//
+//    // TODO: is isCapabilitySet() needed? If yes, uncomment
+//    // has a capability been set?
+//    /*
+//    inline bool isCapabilitySet() const
+//    {
+//        return (value.getType() != EMPTY);
+//    }
+//    */
+//
+//    // file I/O
+//    std::ostream& writeValue(std::ostream &s) const;
+//    std::istream& readValue(std::istream &s);
+//
+};
+
+#endif // INVERSECAPABILITYOCTREENODE_H

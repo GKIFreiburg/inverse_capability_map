@@ -1,0 +1,33 @@
+<launch>
+    <arg name="pathname" value="$(find inverse_capability_map_generator)/maps/pr2_map_right_arm_5cm.icpm" />
+    <arg name="path_capa" value="$(find capability_map_generator)/maps/pr2_map_right_arm_2.5cm.cpm" />
+
+	<!--
+    <include file="$(find pr2_moveit_config)/launch/planning_context.launch">
+        <arg name="load_robot_description" value="true"/>
+    </include>
+    -->
+    
+    <!-- resolution (double) -->
+    <arg name="r" value="0.05" />
+    <!-- theta_resolution (unsigned int) -->
+    <arg name="t" value="16" />
+    
+	<!-- bounding box -->   
+    <arg name="x1" value="-1.5" />
+    <arg name="x2" value="1.5" />
+    
+    <arg name="y1" value="-1.5" />
+    <arg name="y2" value="1.5" />
+    
+    <arg name="z1" value="1.0" />
+    <arg name="z2" value="-1.0" />
+
+    <node pkg="inverse_capability_map_generator" type="inverse_capability_map_generator" 
+    	name="inverse_capability_map_generator"
+    	args="-p $(arg pathname) -c $(arg path_capa) -r $(arg r) -t $(arg t) -x $(arg x1) -x $(arg x2) -y $(arg y1) -y $(arg y2) -z $(arg z1) -z $(arg z2)"
+    	output="screen" required="true">
+    </node>
+</launch>
+
+<!-- approximated right_arm bounding box of pr2: -x -0.55 -x 0.85 -y -1.05 -y 0.45 -z -0.75 -z 0.55 -->
