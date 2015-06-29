@@ -232,7 +232,7 @@ int main(int argc, char** argv )
 	visualization_msgs::MarkerArray markerArray;
 
 	// loop through all capabilities
-	for (InverseCapabilityOcTree::leaf_iterator it = tree->begin_leafs(), end = tree->end_leafs(); it != end; ++it)
+	for (InverseCapabilityOcTree::leaf_iterator it = tree->begin_leafs(); it != tree->end_leafs(); ++it)
 	{
 		// if not inside boundaries, skip actual capability
 		double eps = 0.000001;
