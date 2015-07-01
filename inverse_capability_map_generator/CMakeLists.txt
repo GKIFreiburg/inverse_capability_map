@@ -112,8 +112,16 @@ add_library(inverse_capability_map_generator_utils
 )
 
 ## Declare a cpp executable
-add_executable(inverse_capability_object_generator src/inverse_capability_object_generator.cpp)
+add_executable(inverse_capability_object_generator src/InverseCapabilityObjectGenerator.cpp)
 target_link_libraries(inverse_capability_object_generator
+  inverse_capability_map_generator_utils
+  ${EIGEN_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OCTOMAP_LIBRARIES}
+)
+
+add_executable(inverse_capability_table_generator src/InverseCapabilityTableGenerator.cpp)
+target_link_libraries(inverse_capability_table_generator
   inverse_capability_map_generator_utils
   ${EIGEN_LIBRARIES}
   ${catkin_LIBRARIES}

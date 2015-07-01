@@ -1,0 +1,28 @@
+<launch>
+    
+    <!-- select group_name: left_arm or right_arm -->
+    <arg name="group_name" value="right_arm" />
+    
+    <!-- resolution in m (0.1, 0.05, 0.025) -->
+    <arg name="r" value="0.1" />
+        
+	<!-- table dimension -->   
+    <arg name="width" value="2.13" />
+    <arg name="length" value="1.02" />
+    <arg name="height" value="0.3" /> <!-- height difference between torso_lift_link and table -->
+    
+	<!-- DO NOT CHANGE PARAMETERS BELOW -->
+
+	<!-- theta resolution -->
+	<arg name="t" value="16" />
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_table_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_inv_obj" value="$(find inverse_capability_map_generator)/maps/inv_cap_object_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+
+    <node pkg="inverse_capability_map_generator" type="inverse_capability_table_generator"
+    	name="inverse_capability_table_generator"
+    	args="-p $(arg path_name) -o $(arg path_inv_obj)
+    	-r $(arg r)
+    	-w $(arg width) -l $(arg length) -z $(arg height)"
+    	output="screen" required="true">
+    </node>
+</launch>

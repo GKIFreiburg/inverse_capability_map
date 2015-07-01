@@ -127,7 +127,7 @@ Input verifyInput(int argc, const char * const * argv)
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "inverse_capability_map_generator");
+    ros::init(argc, argv, "inverse_capability_object_generator");
 
     Input input = verifyInput(argc, argv);
 
@@ -186,7 +186,6 @@ int main(int argc, char** argv)
                 	// compute theta
                 	double theta = (2 * M_PI / theta_resolution) * i;
 
-                	// look up percent
                     geometry_msgs::Pose robo;
                     robo.position.x = x;
                     robo.position.y = y;
@@ -200,6 +199,7 @@ int main(int argc, char** argv)
                     // compute inverse transformation, from object frame to robot frame
                     tf::Pose result = roboPose.inverse();
 
+                	// look up percent for current robot pose
                     double percent = capa_tree->getNodeCapability(result.getOrigin().x(), result.getOrigin().y(), result.getOrigin().z()).getPercentReachable();
                     if (percent == 0)
                     	continue;

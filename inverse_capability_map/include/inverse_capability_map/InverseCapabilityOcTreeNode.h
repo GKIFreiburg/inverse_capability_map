@@ -36,6 +36,10 @@ class InverseCapability
 //    FRIEND_TEST(Capability, equalityOperators);
     bool operator==(const InverseCapability &other) const;
     bool operator!=(const InverseCapability &other) const;
+    // add to inverseCapabilities
+    InverseCapability operator+(const InverseCapability &other) const;
+
+    void normalize(const double& value);
 
     // Return the <theta, percent> with the highest percentage
 //    FRIEND_TEST(Capability, isDirectionPossible);
@@ -97,6 +101,8 @@ class InverseCapabilityOcTreeNode : public OcTreeDataNode<InverseCapability>
     }
 
     inline InverseCapability getInverseCapability() const { return value; }
+
+    inline void normalize(const double& val) { value.normalize(val); }
 //
 //    // TODO: is isCapabilitySet() needed? If yes, uncomment
 //    // has a capability been set?

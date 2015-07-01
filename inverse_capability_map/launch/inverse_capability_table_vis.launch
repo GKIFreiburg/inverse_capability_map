@@ -1,0 +1,51 @@
+<launch>
+    <!-- select group_name: left_arm or right_arm -->
+    <arg name="group_name" value="right_arm" />
+    
+    <!-- resolution in m -->
+    <arg name="r" value="0.05" />
+    <!-- theta_resolution (unsigned int) -->
+    <arg name="t" value="16" />
+    
+    <!-- bounding box x [-1.5, 1.5]; y [-1.5, 1.5]; z [-1.0, 1.0] -->
+    <arg name="x1" value="-3.0" />
+    <arg name="x2" value="3.0" />
+    
+    <arg name="y1" value="-3.0" />
+    <arg name="y2" value="3.0" />
+    
+    <arg name="z1" value="1.0" />
+    <arg name="z2" value="-1.0" />
+    
+	<!-- table dimension -->
+    <arg name="width" value="2.13" />
+    <arg name="length" value="1.02" />
+    
+    <!-- display color table -->
+    <arg name="colortable" value="false" />
+    <!-- draw arrows in 3d -->
+    <arg name="3darrowdimension" value="false" />
+    
+    <arg name="min_percent" value="25" />
+    
+
+	<!-- DO NOT CHANGE PARAMETERS BELOW -->
+	   
+	<!-- path to inverse capability map -->
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_table_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    
+    <arg name="c" value="-c" if="$(arg colortable)" />
+    <arg name="c" value="" unless="$(arg colortable)" />
+	<arg name="d" value="-d" if="$(arg 3darrowdimension)" />
+	<arg name="d" value="" unless="$(arg 3darrowdimension)" />
+
+    <node pkg="inverse_capability_map" type="inverse_capability_table_vis" name="inverse_capability_table_vis"
+    	args=" -p $(arg path_name)
+    	$(arg c)
+    	$(arg d)
+    	-w $(arg width) -l $(arg length)
+    	-x $(arg x1) -x $(arg x2) -y $(arg y1) -y $(arg y2) -z $(arg z1) -z $(arg z2)"
+		output="screen">
+		<param name="minimum_percent" type="double" value="$(arg min_percent)" />
+    </node>
+</launch>
