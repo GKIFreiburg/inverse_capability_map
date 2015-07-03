@@ -5,11 +5,12 @@ project(inverse_capability_map_generator)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  eigen
+  visualization_msgs
   capability_map
   inverse_capability_map
-  roscpp
-  visualization_msgs
-  eigen
+  inverse_capability_map_utils
 #  moveit_core
 #  moveit_ros_planning
 )
@@ -107,14 +108,13 @@ include_directories(
 )
 
 ## Declare a cpp library
-add_library(inverse_capability_map_generator_utils
-  src/utils.cpp
-)
+# add_library(inverse_capability_map_generator
+#  src/*.cpp
+#)
 
 ## Declare a cpp executable
 add_executable(inverse_capability_object_generator src/InverseCapabilityObjectGenerator.cpp)
 target_link_libraries(inverse_capability_object_generator
-  inverse_capability_map_generator_utils
   ${EIGEN_LIBRARIES}
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}
@@ -122,7 +122,6 @@ target_link_libraries(inverse_capability_object_generator
 
 add_executable(inverse_capability_table_generator src/InverseCapabilityTableGenerator.cpp)
 target_link_libraries(inverse_capability_table_generator
-  inverse_capability_map_generator_utils
   ${EIGEN_LIBRARIES}
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}

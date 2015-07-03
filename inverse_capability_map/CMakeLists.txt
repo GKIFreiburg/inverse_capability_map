@@ -5,11 +5,12 @@ project(inverse_capability_map)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  capability_map
-  geometry_msgs
   roscpp
   std_msgs
+  geometry_msgs
   visualization_msgs 
+  capability_map
+  inverse_capability_map_utils
 )
 find_package(octomap REQUIRED)
 
@@ -105,13 +106,9 @@ include_directories(
 add_library(inverse_capability_octree src/InverseCapabilityOcTreeNode.cpp src/InverseCapabilityOcTree.cpp)
 target_link_libraries(inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
-add_library(inverse_capability_map_utils src/utilsVis.cpp)
-target_link_libraries(inverse_capability_map_utils ${catkin_LIBRARIES})
-
 add_executable(inverse_capability_object_vis src/InverseCapabilityObjectVis.cpp)
 target_link_libraries(inverse_capability_object_vis
   inverse_capability_octree
-  inverse_capability_map_utils
   ${OCTOMAP_LIBRARIES}
   ${catkin_LIBRARIES}
 )
@@ -119,7 +116,6 @@ target_link_libraries(inverse_capability_object_vis
 add_executable(inverse_capability_table_vis src/InverseCapabilityTableVis.cpp)
 target_link_libraries(inverse_capability_table_vis
   inverse_capability_octree
-  inverse_capability_map_utils
   ${OCTOMAP_LIBRARIES}
   ${catkin_LIBRARIES}
 )

@@ -1,6 +1,6 @@
 #include <capability_map/CapabilityOcTree.h>
 #include <inverse_capability_map/InverseCapabilityOcTree.h>
-#include <inverse_capability_map_generator/utils.h>
+#include <inverse_capability_map_utils/path_utils.h>
 #include <geometry_msgs/Pose.h>
 #include <tf/tf.h>
 #include <ros/ros.h>
@@ -11,6 +11,8 @@
 #include <sstream>
 #include <fstream>
 #include <ostream>
+
+using namespace inverse_capability_map_utils;
 
 struct Input {
     double resolution;
@@ -106,7 +108,7 @@ Input verifyInput(int argc, const char * const * argv)
     }
 
     // Verify that input values are conform
-    inverse_capability_map_generator::verifyPath(input.path_name);
+    verifyPath(input.path_name, ".icpm");
 
     if (input.resolution <= 0.0)
     {
