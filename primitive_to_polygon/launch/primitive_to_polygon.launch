@@ -1,6 +1,6 @@
 <launch>
     <!-- polygon name -->
-    <arg name="name" value="rectangle" />
+    <arg name="name" value="tablew213h102" />
     
     <!-- select primitive -->
     <arg name="rectangle" value="true" />
