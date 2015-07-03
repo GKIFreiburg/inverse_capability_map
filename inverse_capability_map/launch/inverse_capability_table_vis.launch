@@ -2,8 +2,8 @@
     <!-- select group_name: left_arm or right_arm -->
     <arg name="group_name" value="right_arm" />
     
-    <!-- resolution in m -->
-    <arg name="r" value="0.05" />
+    <!-- resolution in m (0.1, 0.05, 0.025) -->
+    <arg name="r" value="0.025" />
     <!-- theta_resolution (unsigned int) -->
     <arg name="t" value="16" />
     
