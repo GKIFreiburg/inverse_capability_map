@@ -1,0 +1,31 @@
+<launch>
+    <!-- polygon name -->
+    <arg name="name" value="rectangle" />
+    
+    <!-- select primitive -->
+    <arg name="rectangle" value="true" />
+    <arg name="circle" value="false" />
+    
+    <!-- rectangle params: width, height -->
+    <arg name="width" value="2.13" />
+    <arg name="height" value="1.02" />
+    
+    <!-- circle params: radius, points -->
+    <arg name="radius" value="0.75" />
+    <arg name="points" value="16" />
+            
+	<!-- DO NOT CHANGE PARAMETERS BELOW -->
+	
+	<arg name="r" value="-r $(arg width) -r $(arg height)" if="$(arg rectangle)" />
+	<arg name="r" value="" unless="$(arg rectangle)" />
+	<arg name="c" value="-c $(arg radius) -c $(arg points)" if="$(arg circle)" />
+	<arg name="c" value="" unless="$(arg circle)" />
+
+    <arg name="path_name" value="$(find primitive_to_polygon)/polygons/$(arg name).poly" />
+
+    <node pkg="primitive_to_polygon" type="primitive_to_polygon"
+    	name="primitive_to_polygon"
+    	args="-p $(arg path_name) $(arg r) $(arg c)"    	
+    	output="screen" required="true">
+    </node>
+</launch>
