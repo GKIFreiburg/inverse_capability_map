@@ -1,5 +1,5 @@
 #include "inverse_capability_map/InverseCapabilityOcTree.h"
-#include "inverse_capability_map/utilsVis.h"
+#include "inverse_capability_map_utils/visualization_utils.h"
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <cmath>
@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
-using namespace inverse_capability_map;
+using namespace inverse_capability_map_utils;
 
-int main(int argc, char** argv )
+int main(int argc, char** argv)
 {
     ros::init(argc, argv, "inverse_capability_visualization");
 

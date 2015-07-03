@@ -1,5 +1,5 @@
 #include "inverse_capability_map/InverseCapabilityOcTree.h"
-#include "inverse_capability_map/utilsVis.h"
+#include "inverse_capability_map_utils/visualization_utils.h"
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <cmath>
@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-using namespace inverse_capability_map;
+using namespace inverse_capability_map_utils;
 
 int main(int argc, char** argv )
 {
@@ -286,37 +286,37 @@ int main(int argc, char** argv )
 		}
 	}
 
-//	if (showColorTable)
-//	{
-//		for (size_t i = 0; i < 21; ++i)
-//		{
-//			visualization_msgs::Marker marker;
-//
-//			marker.header.frame_id = frame;
-//			marker.header.stamp = ros::Time(0);
-//
-//			marker.ns = "color_table";
-//			marker.id = count++;
-//
-//			marker.action = visualization_msgs::Marker::ADD;
-//			marker.lifetime = ros::Duration();
-//
-//			marker.type = visualization_msgs::Marker::CUBE;
-//
-//			marker.pose.position.x = 0.05 * (double)i;
-//			marker.pose.position.y = maxY + 0.5;
-//			marker.pose.position.z = 0.0;
-//
-//			marker.scale.x = 0.05;
-//			marker.scale.y = 0.05;
-//			marker.scale.z = 0.05;
-//
-//			// set color according to reachable surface
-//			setMarkerColor(marker, 0.05 * (double)i);
-//
-//			markerArray.markers.push_back(marker);
-//		}
-//	}
+	if (showColorTable)
+	{
+		for (size_t i = 0; i < 21; ++i)
+		{
+			visualization_msgs::Marker marker;
+
+			marker.header.frame_id = frame;
+			marker.header.stamp = ros::Time(0);
+
+			marker.ns = "color_table";
+			marker.id = count++;
+
+			marker.action = visualization_msgs::Marker::ADD;
+			marker.lifetime = ros::Duration();
+
+			marker.type = visualization_msgs::Marker::CUBE;
+
+			marker.pose.position.x = 0.05 * (double)i;
+			marker.pose.position.y = maxY + 0.5;
+			marker.pose.position.z = 0.0;
+
+			marker.scale.x = 0.05;
+			marker.scale.y = 0.05;
+			marker.scale.z = 0.05;
+
+			// set color according to reachable surface
+			setMarkerColor(marker, 0.05 * (double)i);
+
+			markerArray.markers.push_back(marker);
+		}
+	}
 
 	ROS_INFO("Number of markers: %lu", markerArray.markers.size());
 	// Publish the marker
