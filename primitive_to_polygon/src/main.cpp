@@ -6,7 +6,7 @@
 #include <ros/init.h>
 #include <geometry_msgs/Polygon.h>
 
-using namespace inverse_capability_map_utils;
+using namespace polygon;
 
 void verifyInput(const std::vector<double>& rectangle, const std::vector<double>& circle)
 {

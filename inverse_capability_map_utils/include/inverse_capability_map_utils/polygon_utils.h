@@ -4,14 +4,34 @@
 #include <string>
 #include <geometry_msgs/Polygon.h>
 
-namespace inverse_capability_map_utils
+namespace polygon
 {
+
+struct bbox
+{
+	double xmin, xmax, ymin, ymax;
+};
+
+struct center
+{
+	double x, y;
+};
 
 // Create a file at given path and dump the given polygon in yaml format
 bool dumpPolygon(const std::string& path, const geometry_msgs::Polygon& polygon);
 
 // Read polygon from file
 geometry_msgs::Polygon loadPolygon(const std::string& path);
+
+bbox computeBoundingBox(geometry_msgs::Polygon& polygon);
+
+center computeCenterBoundingBox(const bbox& bbox);
+
+// Check if point given by x,y is inside given polygon
+// using Jordan curve theorem
+// if result is odd, point is inside polygon, else if even, point outside polygon
+int pointInPolygon(const geometry_msgs::Polygon& polygon, const double& x, const double& y);
+
 
 }; // namespace
 
