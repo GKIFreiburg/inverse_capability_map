@@ -4,7 +4,7 @@
     <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
-    <arg name="r" value="0.1" />
+    <arg name="r" value="0.05" />
         
 	<!-- table dimension -->   
     <arg name="width" value="2.13" />
