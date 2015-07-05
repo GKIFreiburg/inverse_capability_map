@@ -82,7 +82,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES inverse_capability_map_utils
-#  CATKIN_DEPENDS other_catkin_pkg
+  CATKIN_DEPENDS geometry_msgs roscpp
 #  DEPENDS system_lib
 )
 
@@ -104,6 +104,10 @@ add_library(inverse_capability_map_utils
   src/polygon_utils.cpp
 )
 
+target_link_libraries(inverse_capability_map_utils
+ ${catkin_LIBRARIES}
+)
+
 ## Declare a cpp executable
 # add_executable(inverse_capability_map_utils_node src/inverse_capability_map_utils_node.cpp)
 
@@ -113,7 +117,7 @@ add_library(inverse_capability_map_utils
 
 ## Specify libraries to link a library or executable target against
 #target_link_libraries(inverse_capability_map_utils
-#  ${catkin_LIBRARIES}
+# ${catkin_LIBRARIES}
 #)
 
 #############

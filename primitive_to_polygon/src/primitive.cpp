@@ -17,14 +17,14 @@ geometry_msgs::Polygon Rectangle::createPolygon()
 	polygon.points[0] = p;
 
 	p.x = width_ / 2;
-	p.y = height_ / 2;
+	p.y = -height_ / 2;
 	polygon.points[1] = p;
 
-	p.x = -width_ / 2;
+	p.x = width_ / 2;
 	p.y = height_ / 2;
 	polygon.points[2] = p;
 
-	p.x = width_ / 2;
+	p.x = -width_ / 2;
 	p.y = height_ / 2;
 	polygon.points[3] = p;
 

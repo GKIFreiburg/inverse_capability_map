@@ -21,11 +21,13 @@ struct center
 bool dumpPolygon(const std::string& path, const geometry_msgs::Polygon& polygon);
 
 // Read polygon from file
-geometry_msgs::Polygon loadPolygon(const std::string& path);
+geometry_msgs::Polygon* loadPolygon(const std::string& path);
 
-bbox computeBoundingBox(geometry_msgs::Polygon& polygon);
+bbox computeBoundingBox(const geometry_msgs::Polygon& polygon);
 
-center computeCenterBoundingBox(const bbox& bbox);
+center computeBoundingBoxCenter(const bbox& bbox);
+
+bbox computeCenteredBoundingBox(const geometry_msgs::Polygon& polygon);
 
 // Check if point given by x,y is inside given polygon
 // using Jordan curve theorem

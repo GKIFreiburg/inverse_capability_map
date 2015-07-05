@@ -88,7 +88,7 @@ find_package(octomap REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
+#  INCLUDE_DIRS include
 #  LIBRARIES inverse_capability_map_generator
 #  CATKIN_DEPENDS inverse_capability_map capability_map roscpp
   DEPENDS eigen
@@ -101,7 +101,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
+#  include
   ${EIGEN_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 #  ${OCTOMAP_INCLUDE_DIRS}
@@ -111,6 +111,7 @@ include_directories(
 # add_library(inverse_capability_map_generator
 #  src/*.cpp
 #)
+
 
 ## Declare a cpp executable
 add_executable(inverse_capability_object_generator src/InverseCapabilityObjectGenerator.cpp)

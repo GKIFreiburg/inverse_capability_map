@@ -1,6 +1,8 @@
 #include <inverse_capability_map/InverseCapabilityOcTree.h>
 #include <inverse_capability_map_utils/path_utils.h>
+#include <inverse_capability_map_utils/polygon_utils.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Polygon.h>
 #include <tf/tf.h>
 #include <ros/ros.h>
 #include <tclap/CmdLine.h>
@@ -13,13 +15,12 @@ struct Input {
     double resolution;
     std::string path_object;
     std::string path_name;
-    double width;
-    double length;
-    double height;
+    std::string path_poly;
     bool loggingEnabled;
 };
 
 InverseCapabilityOcTree* object_tree = NULL;
+geometry_msgs::Polygon* poly = NULL;
 
 Input verifyInput(int argc, const char * const * argv)
 {
@@ -38,27 +39,16 @@ Input verifyInput(int argc, const char * const * argv)
     msg = "Filename and path where the inverse capability table map should be stored. \nExample: -c mydir/mysubdir/filename.icpm";
     TCLAP::ValueArg<std::string> path_name_arg("p", "path-inverse-capability-table-map", msg, true, "./inverse_capability_map.icpm", "string");
 
-    msg = "The width of the table in m.\n"
-           "Example: -w 1.0";
-    TCLAP::ValueArg<double> width_arg("w", "width", msg, true, 1.0, "floating point");
-
-    msg = "The length of the table in m.\n"
-           "Example: -l 2.0";
-    TCLAP::ValueArg<double> length_arg("l", "length", msg, true, 1.0, "floating point");
-
-    msg = "The height difference between table and base frame in m.\n"
-           "Example: -h 0.9";
-    TCLAP::ValueArg<double> height_arg("z", "height", msg, true, 1.0, "floating point");
+    msg = "Filename and path to the polygon file. \nExample: -c mydir/mysubdir/polygon.poly";
+    TCLAP::ValueArg<std::string> path_poly_arg("i", "path-polygon", msg, true, "./polygon.poly", "string");
 
 //    msg = "If set, writes a log file containing time required and number of computed capabilities to map_name.cpm.build_log";
 //    TCLAP::SwitchArg log_arg("l", "log", msg, false);
 
-    cmd.add(width_arg);
-    cmd.add(length_arg);
-    cmd.add(height_arg);
     cmd.add(resolution_arg);
     cmd.add(path_object_arg);
     cmd.add(path_name_arg);
+    cmd.add(path_poly_arg);
 //    cmd.add(log_arg);
 
     // parse arguments with TCLAP
@@ -75,17 +65,14 @@ Input verifyInput(int argc, const char * const * argv)
 
     // get values from arguments
     Input input;
-    input.resolution = resolution_arg.getValue();
+    input.resolution  = resolution_arg.getValue();
     input.path_object = path_object_arg.getValue();
-    input.path_name = path_name_arg.getValue();
-    input.width = width_arg.getValue();
-    input.length = length_arg.getValue();
-    input.height = height_arg.getValue();
+    input.path_name   = path_name_arg.getValue();
+    input.path_poly   = path_poly_arg.getValue();
 //    input.loggingEnabled = log_arg.getValue();
 
     // load inverse capability object map
     object_tree = InverseCapabilityOcTree::readFile(input.path_object);
-
     if (object_tree == NULL)
     {
         ROS_ERROR("Could not load inverse capability object map file %s", input.path_object.c_str());
@@ -93,26 +80,21 @@ Input verifyInput(int argc, const char * const * argv)
         exit(1);
     }
 
-    // Verify that input values are conform
+    // load polygon
+    poly = polygon::loadPolygon(input.path_poly);
+    if (poly == NULL)
+    {
+        ROS_ERROR("Could not load polygon from file %s", input.path_poly.c_str());
+        ros::shutdown();
+        exit(1);
+    }
+
+    // Verify path of inverse capability surface map
     verifyPath(input.path_name, ".icpm");
 
     if (input.resolution <= 0.0)
     {
         ROS_ERROR("Error: resolution must be positive and greater than 0.0");
-        ros::shutdown();
-        exit(1);
-    }
-
-    if (input.width <= 0.0)
-    {
-        ROS_ERROR("Error: width must be positive and greater than 0.0");
-        ros::shutdown();
-        exit(1);
-    }
-
-    if (input.length <= 0.0)
-    {
-        ROS_ERROR("Error: length must be positive and greater than 0.0");
         ros::shutdown();
         exit(1);
     }
@@ -131,17 +113,18 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "inverse_capability_object_generator");
 
     Input input = verifyInput(argc, argv);
-
     ros::NodeHandle nhPriv("~");
 
     // aliases
-    const double& width            = input.width;
-    const double& length           = input.length;
-    const double& height           = input.height;
     const double& resolution       = input.resolution;
-    ROS_INFO("Table width : %lf", width);
-    ROS_INFO("Table length: %lf", length);
-    ROS_INFO("Height difference between base frame and table: %lf", height);
+    polygon::bbox bbox = polygon::computeCenteredBoundingBox(*poly);
+    double widthBbox, lengthBbox;
+    widthBbox = bbox.xmax - bbox.xmin;
+    lengthBbox = bbox.ymax - bbox.ymin;
+    ROS_INFO("Bounding box width : %lf", widthBbox);
+    ROS_INFO("Bounding box length: %lf", lengthBbox);
+    polygon::center center = polygon::computeBoundingBoxCenter(bbox);
+    ROS_INFO("Bounding box center: (%lf, %lf)", center.x, center.y);
 
     InverseCapabilityOcTree table_tree(resolution);
     table_tree.setGroupName(object_tree->getGroupName());
@@ -155,8 +138,8 @@ int main(int argc, char** argv)
     ROS_INFO("Theta resolution is: %d\n", table_tree.getThetaResolution());
 
     unsigned int width_cells, length_cells, grid_cells;
-    width_cells  = round(width / resolution);
-    length_cells = round(length / resolution);
+    width_cells  = round(widthBbox / resolution);
+    length_cells = round(lengthBbox / resolution);
     grid_cells   = width_cells * length_cells;
     ROS_INFO("Number of width  cells: %d", width_cells);
     ROS_INFO("Number of length cells: %d", length_cells);
@@ -169,8 +152,8 @@ int main(int argc, char** argv)
 
     // start pose at left lower corner of table, but in center of grid cell
     geometry_msgs::Pose start_pose;
-    start_pose.position.x = - width / 2 + resolution / 2;
-    start_pose.position.y = - length / 2 + resolution / 2;
+    start_pose.position.x = center.x - widthBbox / 2 + resolution / 2;
+    start_pose.position.y = center.y - lengthBbox / 2 + resolution / 2;
     start_pose.position.z = 0;
     tf::Quaternion q;
     q.setRPY(0, 0, 0);
@@ -184,6 +167,16 @@ int main(int argc, char** argv)
     // progress in percent
     double progress = 0.0;
     double progressLimiter = 0.0;
+
+//    ROS_WARN_STREAM(*poly);
+//    double x = 0;
+//    double y = 0;
+//    int c = polygon::pointInPolygon(*poly, x, y);
+//
+//    if (c % 2 == 0)
+//    	ROS_INFO("point outside polygon, %d", c);
+//    else
+//    	ROS_INFO("point inside polygon, %d", c);
 
 	geometry_msgs::Point object_in_table_frame, robot_in_object_frame;
 	for (unsigned int l = 0; l != length_cells; l++)
@@ -221,8 +214,13 @@ int main(int argc, char** argv)
                 tf::pointMsgToTF(object_in_table_frame, obj_in_table_frame);
                 robot_in_table_frame = robot_in_obj_frame + obj_in_table_frame;
 
-                if (robotPositionInTableContour(robot_in_table_frame, width, length))
+                // check if robot position is inside polygon, meaning invalid position
+                // if return value of pointInPolygon is odd then position is in polygon
+                if (polygon::pointInPolygon(*poly, robot_in_table_frame.getX(), robot_in_table_frame.getY()) % 2 != 0)
+                {
+//                	ROS_INFO("Position: (%lf, %lf) is in Polygon", robot_in_table_frame.getX(), robot_in_table_frame.getY());
                 	continue;
+                }
 
                 InverseCapability inv_obj = it->getValue();
 

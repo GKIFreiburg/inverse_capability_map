@@ -3,7 +3,7 @@
     <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
-    <arg name="r" value="0.025" />
+    <arg name="r" value="0.1" />
     <!-- theta_resolution (unsigned int) -->
     <arg name="t" value="16" />
     
@@ -26,7 +26,7 @@
     <!-- draw arrows in 3d -->
     <arg name="3darrowdimension" value="false" />
     
-    <arg name="min_percent" value="25" />
+    <arg name="min_percent" value="30" />
     
 
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->

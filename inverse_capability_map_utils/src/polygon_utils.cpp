@@ -27,21 +27,25 @@ bool dumpPolygon(const std::string& path, const geometry_msgs::Polygon& polygon)
     return true;
 }
 
-geometry_msgs::Polygon loadPolygon(const std::string& path)
+geometry_msgs::Polygon* loadPolygon(const std::string& path)
 {
-	geometry_msgs::Polygon result;
+	geometry_msgs::Polygon* result = new geometry_msgs::Polygon;
 	std::ifstream file(path.c_str(), std::ios::in);
 	if (!file.is_open())
 	{
 		ROS_ERROR_STREAM("Filestream to " << path << " not open, nothing read.");
-		return result;
+		return NULL;
 	}
 	else
 	{
 		geometry_msgs::Point32 p;
-		std::string qualifier;
 		while (!file.eof())
 		{
+			std::string qualifier;
+			file >> qualifier;
+			// check if lines start with "point_" if not break while loop
+			if (qualifier.find("point_") == std::string::npos)
+				break;
 			file.ignore(10, '[');
 			file >> p.x;
 			file.ignore(1);
@@ -49,25 +53,24 @@ geometry_msgs::Polygon loadPolygon(const std::string& path)
 			file.ignore(1);
 			file >> p.z;
 			file.ignore(1);
-			result.points.push_back(p);
+			result->points.push_back(p);
 		}
 		file.close();
 	}
-	ROS_INFO_STREAM(result);
+//	ROS_INFO_STREAM(*result);
 	return result;
 }
 
-bbox computeBoundingBox(geometry_msgs::Polygon& polygon)
+bbox computeBoundingBox(const geometry_msgs::Polygon& polygon)
 {
 	bbox bbox;
 	bbox.xmin = HUGE_VAL;
 	bbox.ymin = HUGE_VAL;
 	bbox.xmax = -HUGE_VAL;
 	bbox.xmax = -HUGE_VAL;
-
 	for (size_t i = 0; i < polygon.points.size(); i++)
 	{
-		geometry_msgs::Point32& p = polygon.points[i];
+		const geometry_msgs::Point32& p = polygon.points[i];
 		if (p.x < bbox.xmin)
 			bbox.xmin = p.x;
 		else if (p.x > bbox.xmax)
@@ -81,24 +84,42 @@ bbox computeBoundingBox(geometry_msgs::Polygon& polygon)
 	return bbox;
 }
 
-center computeCenterBoundingBox(const bbox& bbox)
+center computeBoundingBoxCenter(const bbox& bbox)
 {
 	center center;
-	center.x = bbox.xmax - bbox.xmin;
-	center.y = bbox.ymax - bbox.ymin;
+	center.x = (fabs(bbox.xmax) + fabs(bbox.xmin)) / 2 + bbox.xmin;
+	center.y = (fabs(bbox.ymax) + fabs(bbox.ymin)) / 2 + bbox.ymin;
 
 	return center;
 }
 
-int pointInPolygon(const geometry_msgs::Polygon& polygon, double x, double y)
+bbox computeCenteredBoundingBox(const geometry_msgs::Polygon& polygon)
 {
-  int i, j, c = 0;
-  for (i = 0, j = polygon.points.size() - 1; i < polygon.points.size(); j = i++) {
-    if ( ((polygon.points[i].y >= y) != (polygon.points[j].y >= y)) &&
-     (x <= (polygon.points[j].x - polygon.points[i].x) * (y - polygon.points[i].y) / (polygon.points[j].y - polygon.points[i].y) + polygon.points[i].x) )
-       c = !c;
-  }
-  return c;
+	bbox bbox = computeBoundingBox(polygon);
+	center center = computeBoundingBoxCenter(bbox);
+
+	bbox.xmin = bbox.xmin - center.x;
+	ROS_WARN("bbox min %lf", bbox.xmin);
+	bbox.xmax = bbox.xmax - center.x;
+
+	bbox.ymin = bbox.ymin - center.y;
+	bbox.ymax = bbox.ymax - center.y;
+
+	return bbox;
+}
+
+int pointInPolygon(const geometry_msgs::Polygon& polygon, const double& x, const double& y)
+{
+	int i, j, c = 0;
+	for (i = 0, j = polygon.points.size() - 1; i < polygon.points.size(); j = i++)
+	{
+		if ( ((polygon.points[i].y > y) != (polygon.points[j].y > y)) &&
+		 (x < (polygon.points[j].x - polygon.points[i].x) * (y - polygon.points[i].y) / (polygon.points[j].y - polygon.points[i].y) + polygon.points[i].x) )
+		{
+		   c = !c;
+		}
+	}
+	return c;
 }
 
 }; // namespace
