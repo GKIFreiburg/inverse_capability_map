@@ -23,6 +23,8 @@ bool InverseCapabilityOcTree::writeFile(const std::string &filename)
         file << "base_name " << base_name_ << std::endl;
         file << "tip_name " << tip_name_ << std::endl;
         file << "theta_resolution " << theta_resolution_ << std::endl;
+        file.setf( std::ios::fixed, std::ios::floatfield );
+        file << "maximum_percent " << maximum_percent_ << std::endl;
         file.close();
     }
     return true;
@@ -50,6 +52,8 @@ InverseCapabilityOcTree* InverseCapabilityOcTree::readFile(const std::string &fi
     std::string baseName;
     std::string tipName;
     std::string theta_resolution;
+    std::string minimum_percent;
+    std::string maximum_percent;
 
     while(!file.eof())
     {
@@ -74,6 +78,11 @@ InverseCapabilityOcTree* InverseCapabilityOcTree::readFile(const std::string &fi
             file.ignore(1, ' ');
             std::getline(file, theta_resolution);
         }
+        else if (qualifier == "maximum_percent")
+        {
+            file.ignore(1, ' ');
+            std::getline(file, maximum_percent);
+        }
     }
 
     file.close();
@@ -81,11 +90,13 @@ InverseCapabilityOcTree* InverseCapabilityOcTree::readFile(const std::string &fi
     InverseCapabilityOcTree* tree = dynamic_cast<InverseCapabilityOcTree*>(abstractTree);
 
     unsigned int theta_res = atoi(theta_resolution.c_str());
+    double max_percent = atof(maximum_percent.c_str());
 
     tree->setGroupName(groupName);
     tree->setBaseName(baseName);
     tree->setTipName(tipName);
     tree->setThetaResolution(theta_res);
+    tree->setMaximumPercent(max_percent);
 
     return tree;
 }
@@ -176,36 +187,6 @@ std::map<double, double> InverseCapabilityOcTree::getThetasWithMinPercent(const 
 		return std::map<double, double>();
 	return n->getInverseCapability().getThetasWithMinPercent(percent);
 }
-
-
-
-
-
-
-
-
-
-//std::vector<octomath::Vector3> CapabilityOcTree::getPositionsWithMinReachablePercent(double percent)
-//{
-//    std::vector<octomath::Vector3> positions;
-//
-//    // loop through all capabilities
-//    for (CapabilityOcTree::leaf_iterator it = this->begin_leafs(), end = this->end_leafs(); it != end; ++it)
-//    {
-//        if (it->getCapability().getPercentReachable() < percent || it->getCapability().getType() == EMPTY)
-//        {
-//            continue;
-//        }
-//        positions.push_back(octomath::Vector3(it.getX(), it.getY(), it.getZ()));
-//    }
-//    return positions;
-//}
-
-
-
-
-
-
 
 InverseCapabilityOcTreeNode* InverseCapabilityOcTree::setNodeInverseCapabilityRecurs(InverseCapabilityOcTreeNode* node,
 		bool node_just_created, const OcTreeKey& key, unsigned int depth, const InverseCapability &inv_capa)

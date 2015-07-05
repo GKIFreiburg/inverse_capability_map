@@ -273,9 +273,6 @@ int main(int argc, char** argv )
 			// red = high, blue = low
 			// setMarkerColor(&marker, mit->second / 100.0);
 
-//			if (mit->second < 25)
-//			ROS_WARN("percent: %lf", mit->second);
-
 			markerArray.markers.push_back(marker);
 		}
 

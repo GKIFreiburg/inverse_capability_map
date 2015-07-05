@@ -103,17 +103,8 @@ class InverseCapabilityOcTreeNode : public OcTreeDataNode<InverseCapability>
     inline InverseCapability getInverseCapability() const { return value; }
 
     inline void normalize(const double& val) { value.normalize(val); }
-//
-//    // TODO: is isCapabilitySet() needed? If yes, uncomment
-//    // has a capability been set?
-//    /*
-//    inline bool isCapabilitySet() const
-//    {
-//        return (value.getType() != EMPTY);
-//    }
-//    */
-//
-//    // file I/O
+
+    // file I/O
     std::ostream& writeValue(std::ostream &s) const;
     std::istream& readValue(std::istream &s);
 

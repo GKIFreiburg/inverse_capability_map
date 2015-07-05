@@ -17,7 +17,7 @@ class InverseCapabilityOcTree : public OcTreeBase<InverseCapabilityOcTreeNode>
 
     // Default constructor, sets resolution of leafs
     FRIEND_TEST(InverseCapabilityOcTree, constructor);
-    InverseCapabilityOcTree(double resolution) : OcTreeBase<InverseCapabilityOcTreeNode>(resolution) {}
+    InverseCapabilityOcTree(double resolution) : OcTreeBase<InverseCapabilityOcTreeNode>(resolution), maximum_percent_(-1.0) {}
 
     // virtual constructor: creates a new object of same type
     // (Covariant return type requires an up-to-date compiler)
@@ -71,6 +71,9 @@ class InverseCapabilityOcTree : public OcTreeBase<InverseCapabilityOcTreeNode>
     void setThetaResolution(const unsigned int &theta_resolution) { theta_resolution_ = theta_resolution; }
     unsigned int getThetaResolution() const { return theta_resolution_; }
 
+    void setMaximumPercent(const double& percent) { maximum_percent_ = percent; }
+    double getMaximumPercent() const { return maximum_percent_; }
+
   protected:
 
     InverseCapabilityOcTreeNode* setNodeInverseCapabilityRecurs(InverseCapabilityOcTreeNode* node, bool node_just_created, const OcTreeKey& key,
@@ -98,6 +101,7 @@ class InverseCapabilityOcTree : public OcTreeBase<InverseCapabilityOcTreeNode>
     std::string base_name_;
     std::string tip_name_;
     unsigned int theta_resolution_;
+    double maximum_percent_;
 };
 
 

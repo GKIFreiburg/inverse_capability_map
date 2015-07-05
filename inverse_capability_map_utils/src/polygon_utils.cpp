@@ -99,7 +99,6 @@ bbox computeCenteredBoundingBox(const geometry_msgs::Polygon& polygon)
 	center center = computeBoundingBoxCenter(bbox);
 
 	bbox.xmin = bbox.xmin - center.x;
-	ROS_WARN("bbox min %lf", bbox.xmin);
 	bbox.xmax = bbox.xmax - center.x;
 
 	bbox.ymin = bbox.ymin - center.y;

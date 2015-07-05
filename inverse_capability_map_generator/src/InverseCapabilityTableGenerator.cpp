@@ -235,11 +235,18 @@ int main(int argc, char** argv)
     	}
     }
 
+	double max_percent;
 	// normalize nodes
 	for (InverseCapabilityOcTree::leaf_iterator it = table_tree.begin_leafs(); it != table_tree.end_leafs(); ++it)
+	{
+		// normalize InverseCapability by the number of grid cells
 		it->normalize((double) grid_cells);
-//		it->normalize(1.0);
-
+		// check for max percent
+		const std::pair<double, double> pair = it->getInverseCapability().getMaxThetaPercent();
+		if (max_percent < pair.second)
+			max_percent = pair.second;
+	}
+	table_tree.setMaximumPercent(max_percent);
 
     printf("done              \n");
 
