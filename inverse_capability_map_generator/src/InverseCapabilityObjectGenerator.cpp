@@ -176,6 +176,9 @@ int main(int argc, char** argv)
     double progress = 0.0;
     double progressLimiter = 0.0;
 
+    // store highest percent
+    double max_percent = 0.0;
+
     for(double x = startX; x <= endX; x += resolution)
     {
         for(double y = startY; y <= endY; y += resolution)
@@ -208,6 +211,9 @@ int main(int argc, char** argv)
 
                     // add (theta, percent) pair to map
                     inv_capa.insert(std::make_pair(theta, percent));
+
+                    if (max_percent < percent)
+                    	max_percent = percent;
                 }
 				inv_tree.setNodeInverseCapability(x, y, z, inv_capa);
 				// ROS_INFO("MAP SIZE :%lu", inv_capa.size());
@@ -225,6 +231,8 @@ int main(int argc, char** argv)
     }
     printf("done              \n");
 
+    // store maximum percent in tree
+    inv_tree.setMaximumPercent(max_percent);
     if (!inv_tree.writeFile(input.path_name))
     {
         ROS_ERROR("Error: Could not write to file %s\n", input.path_name.c_str());
