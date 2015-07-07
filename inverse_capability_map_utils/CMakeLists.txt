@@ -6,6 +6,8 @@ project(inverse_capability_map_utils)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  shape_msgs
+  moveit_msgs
   geometry_msgs
   visualization_msgs
 )

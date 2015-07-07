@@ -2,6 +2,8 @@
 #include <ros/console.h>
 #include <fstream>
 #include <iostream>
+#include <geometry_msgs/Point.h>
+#include <ros/assert.h>
 
 namespace polygon
 {
@@ -93,7 +95,7 @@ center computeBoundingBoxCenter(const bbox& bbox)
 	return center;
 }
 
-bbox computeCenteredBoundingBox(const geometry_msgs::Polygon& polygon)
+bbox computeBoundingBoxInOrigin(const geometry_msgs::Polygon& polygon)
 {
 	bbox bbox = computeBoundingBox(polygon);
 	center center = computeBoundingBoxCenter(bbox);
@@ -119,6 +121,72 @@ int pointInPolygon(const geometry_msgs::Polygon& polygon, const double& x, const
 		}
 	}
 	return c;
+}
+
+shape_msgs::Mesh createMeshFromPolygon(const geometry_msgs::Polygon& polygon,
+		const double& z_offset, const double& thickness)
+{
+    ROS_ASSERT(polygon.points.size() > 2);
+
+    shape_msgs::Mesh mesh;
+    for (size_t i = 0; i < polygon.points.size(); i++)
+    {
+    	geometry_msgs::Point p;
+    	p.x = polygon.points[i].x;
+    	p.y = polygon.points[i].y;
+    	p.z = polygon.points[i].z + z_offset;
+    	mesh.vertices.push_back(p);
+    }
+
+    for(int i = 2; i < mesh.vertices.size(); ++i) {
+        // poor man's triangulation: Fan pattern.
+        shape_msgs::MeshTriangle tri;
+        tri.vertex_indices[0] = 0;
+        tri.vertex_indices[1] = i;
+        tri.vertex_indices[2] = i - 1;
+        mesh.triangles.push_back(tri);
+    }
+
+    // Add the under side of the table
+    for(size_t i = 0; i < polygon.points.size(); i++) {
+        geometry_msgs::Point p;
+    	p.x = polygon.points[i].x;
+    	p.y = polygon.points[i].y;
+    	p.z = polygon.points[i].z + z_offset - thickness;
+        mesh.vertices.push_back(p);
+    }
+
+    ROS_ASSERT(mesh.vertices.size() == 2 * polygon.points.size());
+    // underside tris are the same as top, but with under side verts + inverted vertex order
+    for(size_t i = polygon.points.size() + 2; i < mesh.vertices.size(); ++i) {
+        // poor man's triangulation: Star pattern.
+        shape_msgs::MeshTriangle tri;
+        tri.vertex_indices[0] = polygon.points.size();
+        tri.vertex_indices[1] = i - 1;
+        tri.vertex_indices[2] = i;
+        mesh.triangles.push_back(tri);
+    }
+
+    // create sides
+    for(int i = 0; i < polygon.points.size(); ++i) {
+        int first_top = i;
+        int next_top = (first_top + 1) % polygon.points.size();
+        int first_bottom = first_top + polygon.points.size();
+        int next_bottom = next_top + polygon.points.size();
+        // make a quad of these
+        shape_msgs::MeshTriangle tri_top;
+        tri_top.vertex_indices[0] = first_top;
+        tri_top.vertex_indices[1] = next_top;
+        tri_top.vertex_indices[2] = first_bottom;
+        mesh.triangles.push_back(tri_top);
+        shape_msgs::MeshTriangle tri_bottom;
+        tri_bottom.vertex_indices[0] = first_bottom;
+        tri_bottom.vertex_indices[1] = next_top;
+        tri_bottom.vertex_indices[2] = next_bottom;
+        mesh.triangles.push_back(tri_bottom);
+    }
+
+    return mesh;
 }
 
 }; // namespace
