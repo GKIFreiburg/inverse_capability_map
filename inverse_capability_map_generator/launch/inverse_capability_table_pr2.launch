@@ -11,6 +11,8 @@
     <arg name="length" value="1.02" />
     <arg name="height" value="0.3" /> <!-- height difference between torso_lift_link and table -->
     
+    <arg name="collision_checking" value="true" />
+    
     <arg name="path_poly" value="$(find primitive_to_polygon)/polygons/tablew213h102.poly" />
     
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
@@ -19,6 +21,10 @@
 	<arg name="t" value="16" />
     <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_table_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
     <arg name="path_inv_obj" value="$(find inverse_capability_map_generator)/maps/inv_cap_object_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    
+	<include file="$(find tidyup_pr2_moveit_config)/launch/planning_context.launch">
+		<arg name="load_robot_description" value="true"/>
+	</include>
 
     <node pkg="inverse_capability_map_generator" type="inverse_capability_table_generator"
     	name="inverse_capability_table_generator"
@@ -26,5 +32,6 @@
     	-i $(arg path_poly)
     	-r $(arg r)"
     	output="screen" required="true">
+    	<param name="collision_checking" type="bool" value="$(arg collision_checking)" />
     </node>
 </launch>

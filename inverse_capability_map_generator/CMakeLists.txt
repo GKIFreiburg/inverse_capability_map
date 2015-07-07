@@ -6,13 +6,16 @@ project(inverse_capability_map_generator)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  tf
+  tf_conversions
   eigen
   visualization_msgs
   capability_map
   inverse_capability_map
   inverse_capability_map_utils
-#  moveit_core
-#  moveit_ros_planning
+  moveit_core
+  moveit_ros_planning
+  tidyup_pr2_moveit_config # dependency due to launch file (robot description)
 )
 
 find_package(EIGEN REQUIRED)
