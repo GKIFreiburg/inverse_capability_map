@@ -131,6 +131,13 @@ target_link_libraries(inverse_capability_table_generator
   ${OCTOMAP_LIBRARIES}
 )
 
+add_executable(inverse_capability_combined_generator src/InverseCapabilityCombinedGenerator.cpp)
+target_link_libraries(inverse_capability_combined_generator
+  ${EIGEN_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OCTOMAP_LIBRARIES}
+)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 #add_dependencies(inverse_capability_map_generator inverse_capability_octree)

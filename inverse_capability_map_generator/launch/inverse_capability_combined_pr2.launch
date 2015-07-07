@@ -1,0 +1,29 @@
+<launch>
+    
+    <!-- select maps by group_name: left_arm or right_arm -->
+    <arg name="map1" value="left_arm" />
+    <arg name="map2" value="right_arm" />
+    
+    <!-- polygon name without ending -->
+    <arg name="poly_name" value="tablew213h102" />
+    
+    <!-- resolution in m (0.1, 0.05, 0.025) -->
+    <arg name="r" value="0.1" />
+	<!-- theta resolution -->
+	<arg name="t" value="16" />
+    
+	<!-- DO NOT CHANGE PARAMETERS BELOW -->
+
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_combined_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_map1" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_$(arg map1)_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_map2" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_$(arg map2)_$(arg r)m_$(arg t)t.icpm" />
+
+    <node pkg="inverse_capability_map_generator" type="inverse_capability_combined_generator"
+    	name="inverse_capability_combined_generator"
+    	args="-p $(arg path_name)
+    	-i $(arg path_map1)
+    	-o $(arg path_map2)
+    	-r $(arg r)"
+    	output="screen" required="true">
+    </node>
+</launch>
