@@ -1,7 +1,7 @@
 <launch>
     
     <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="right_arm" />
+    <arg name="group_name" value="left_arm" />
     
     <!-- resolution in m -->
     <arg name="r" value="0.1" />

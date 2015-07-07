@@ -129,7 +129,7 @@ Input verifyInput(int argc, const char * const * argv)
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "inverse_capability_object_generator");
+    ros::init(argc, argv, "inverse_capability_generator");
 
     Input input = verifyInput(argc, argv);
 

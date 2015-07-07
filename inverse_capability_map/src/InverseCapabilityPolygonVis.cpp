@@ -14,7 +14,7 @@ using namespace inverse_capability_map_utils;
 
 int main(int argc, char** argv )
 {
-    ros::init(argc, argv, "inverse_capability_visualization");
+    ros::init(argc, argv, "inverse_capability_polygon_visualization");
 
     // arguments
     TCLAP::CmdLine cmd("Visualizes the inverse capability map given by argument", ' ', "1.0");

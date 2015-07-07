@@ -155,7 +155,7 @@ void setArmsToSide(robot_state::RobotState& robot_state)
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "inverse_capability_object_generator");
+	ros::init(argc, argv, "inverse_capability_polygon_generator");
 
 	Input input = verifyInput(argc, argv);
 	ros::NodeHandle nhPriv("~");

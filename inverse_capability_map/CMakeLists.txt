@@ -106,15 +106,15 @@ include_directories(
 add_library(inverse_capability_octree src/InverseCapabilityOcTreeNode.cpp src/InverseCapabilityOcTree.cpp)
 target_link_libraries(inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(inverse_capability_object_vis src/InverseCapabilityObjectVis.cpp)
-target_link_libraries(inverse_capability_object_vis
+add_executable(inverse_capability_vis src/InverseCapabilityVis.cpp)
+target_link_libraries(inverse_capability_vis
   inverse_capability_octree
   ${OCTOMAP_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
-add_executable(inverse_capability_table_vis src/InverseCapabilityTableVis.cpp)
-target_link_libraries(inverse_capability_table_vis
+add_executable(inverse_capability_polygon_vis src/InverseCapabilityPolygonVis.cpp)
+target_link_libraries(inverse_capability_polygon_vis
   inverse_capability_octree
   ${OCTOMAP_LIBRARIES}
   ${catkin_LIBRARIES}

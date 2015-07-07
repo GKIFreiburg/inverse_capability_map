@@ -1,13 +1,14 @@
 <launch>
-    <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="right_arm" />
+    <!-- select group_name: left_arm or right_arm or combined-->
+    <arg name="group_name" value="combined" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
     <arg name="r" value="0.1" />
     <!-- theta_resolution (unsigned int) -->
     <arg name="t" value="16" />
     
-    <arg name="path_poly" value="$(find primitive_to_polygon)/polygons/tablew213h102.poly" />
+    <!-- name of polygon without ending -->
+    <arg name="poly_name" value="tablew213h102" />
     
     <!-- bounding box x [-1.5, 1.5]; y [-1.5, 1.5]; z [-1.0, 1.0] -->
     <arg name="x1" value="0" />
@@ -18,11 +19,6 @@
     
     <arg name="z1" value="1.0" />
     <arg name="z2" value="-1.0" />
-    
-	<!-- table dimension
-    <arg name="width" value="2.13" />
-    <arg name="length" value="1.02" />
-	 -->
     
     <!-- display color table -->
     <arg name="colortable" value="false" />
@@ -35,7 +31,9 @@
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 	   
 	<!-- path to inverse capability map -->
-    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_table_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    <!-- path to polygon -->
+    <arg name="path_poly" value="$(find primitive_to_polygon)/polygons/$(arg poly_name).poly" />
     
     <arg name="c" value="-c" if="$(arg colortable)" />
     <arg name="c" value="" unless="$(arg colortable)" />

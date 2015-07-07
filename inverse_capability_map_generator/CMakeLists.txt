@@ -117,15 +117,15 @@ include_directories(
 
 
 ## Declare a cpp executable
-add_executable(inverse_capability_object_generator src/InverseCapabilityObjectGenerator.cpp)
-target_link_libraries(inverse_capability_object_generator
+add_executable(inverse_capability_generator src/InverseCapabilityGenerator.cpp)
+target_link_libraries(inverse_capability_generator
   ${EIGEN_LIBRARIES}
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}
 )
 
-add_executable(inverse_capability_table_generator src/InverseCapabilityTableGenerator.cpp)
-target_link_libraries(inverse_capability_table_generator
+add_executable(inverse_capability_polygon_generator src/InverseCapabilityPolygonGenerator.cpp)
+target_link_libraries(inverse_capability_polygon_generator
   ${EIGEN_LIBRARIES}
   ${catkin_LIBRARIES}
   ${OCTOMAP_LIBRARIES}
