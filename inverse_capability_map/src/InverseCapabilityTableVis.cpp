@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+#include <inverse_capability_map_utils/polygon_utils.h>
+#include <shape_msgs/Mesh.h>
+
 using namespace inverse_capability_map_utils;
 
 int main(int argc, char** argv )
@@ -16,53 +19,47 @@ int main(int argc, char** argv )
     // arguments
     TCLAP::CmdLine cmd("Visualizes the inverse capability map given by argument", ' ', "1.0");
 
-    TCLAP::ValueArg<std::string> pathNameArg("p", "path", "Path and filename of the inverse capability map to be visualized.\n\
+    TCLAP::ValueArg<std::string> path_name_arg("p", "path", "Path and filename of the inverse capability map to be visualized.\n\
                                              Example: -p mydir/mysubdir/filename.icpm", true, "./inverse_capability_map.icpm", "string");
 
     std::string msg;
+    msg = "Filename and path to the polygon file. \nExample: -c mydir/mysubdir/polygon.poly";
+    TCLAP::ValueArg<std::string> path_poly_arg("i", "path-polygon", msg, true, "./polygon.poly", "string");
+
     msg = "Specifies the region in x-direction to be visualized.\n\
            If no x-value is given, depending on y- and z-values, all stored capabilities in x-direction are displayed.\n\
            If only one x-value is given, a slice (or a point) at this position depending on y- and z-values gets computed.\n\
            If more than 2 values are given, the boundaries are from min(x1, x2, ...) to max(x1, x2, ...).\n\
            Example: -x -0.1 -x 2.3";
-    TCLAP::MultiArg<double> xArg("x", "x-pos", msg, false, "floating point");
+    TCLAP::MultiArg<double> x_arg("x", "x-pos", msg, false, "floating point");
 
     msg = "Specifies the region in y-direction to be visualized.\n\
            If no y-value is given, depending on x- and z-values, all stored capabilities in y-direction are displayed.\n\
            If only one y-value is given, a slice (or a point) at this position depending on x- and z-values gets computed.\n\
            If more than 2 values are given, the boundaries are from min(y1, y2, ...) to max(y1, y2, ...).\n\
            Example: -y -0.1 -y 2.3";
-    TCLAP::MultiArg<double> yArg("y", "y-pos", msg, false, "floating point");
+    TCLAP::MultiArg<double> y_arg("y", "y-pos", msg, false, "floating point");
 
     msg = "Specifies the region in z-direction to be visualized.\n\
            If no z-value is given, depending on x- and y-values, all stored capabilities in z-direction are displayed.\n\
            If only one z-value is given, a slice (or a point) at this position depending on x- and y-values gets computed.\n\
            If more than 2 values are given, the boundaries are from min(z1, z2, ...) to max(z1, z2, ...).\n\
            Example: -z -0.1 -z 2.3";
-    TCLAP::MultiArg<double> zArg("z", "z-pos", msg, false, "floating point");
-
-    msg = "The width of the table in m.\n"
-           "Example: -w 1.0";
-    TCLAP::ValueArg<double> widthArg("w", "width", msg, true, 1.0, "floating point");
-
-    msg = "The length of the table in m.\n"
-           "Example: -l 1.0";
-    TCLAP::ValueArg<double> heightArg("l", "length", msg, true, 1.0, "floating point");
+    TCLAP::MultiArg<double> z_arg("z", "z-pos", msg, false, "floating point");
 
     msg = "If set, shows a color table from blue = best to red = worst";
-    TCLAP::SwitchArg colorArg("c", "colortable", msg, false);
+    TCLAP::SwitchArg color_arg("c", "colortable", msg, false);
 
     msg = "If set, drawing 3d arrows, else 2d arrows are drawn";
-    TCLAP::SwitchArg dimensionArg("d", "3darrowdimension", msg, false);
+    TCLAP::SwitchArg dimension_arg("d", "3darrowdimension", msg, false);
 
-    cmd.add(zArg);
-    cmd.add(yArg);
-    cmd.add(xArg);
-    cmd.add(widthArg);
-    cmd.add(heightArg);
-    cmd.add(colorArg);
-    cmd.add(dimensionArg);
-    cmd.add(pathNameArg);
+    cmd.add(x_arg);
+    cmd.add(y_arg);
+    cmd.add(z_arg);
+    cmd.add(color_arg);
+    cmd.add(dimension_arg);
+    cmd.add(path_name_arg);
+    cmd.add(path_poly_arg);
 
     // parse arguments with TCLAP
     try
@@ -76,11 +73,12 @@ int main(int argc, char** argv )
         exit(1);
     }
 
-    bool showColorTable = colorArg.getValue();
-    bool draw3D = dimensionArg.getValue();
+    bool showColorTable = color_arg.getValue();
+    bool draw3D = dimension_arg.getValue();
 
-    std::string pathName = pathNameArg.getValue();
+    std::string pathName = path_name_arg.getValue();
     InverseCapabilityOcTree* tree = InverseCapabilityOcTree::readFile(pathName);
+    std::string path_poly = path_poly_arg.getValue();
 
     if (tree == NULL)
     {
@@ -98,14 +96,10 @@ int main(int argc, char** argv )
     ROS_INFO("Resolution is: %g", tree->getResolution());
     ROS_INFO("Theta resolution is: %d\n", theta_resolution);
 
-    // get the table width and height
-    double width = widthArg.getValue();
-    double height = heightArg.getValue();
-
     // get x, y and z values and sort them
-    std::vector<double> xValues = xArg.getValue();
-    std::vector<double> yValues = yArg.getValue();
-    std::vector<double> zValues = zArg.getValue();
+    std::vector<double> xValues = x_arg.getValue();
+    std::vector<double> yValues = y_arg.getValue();
+    std::vector<double> zValues = z_arg.getValue();
 
     std::sort(xValues.begin(), xValues.end());
     std::sort(yValues.begin(), yValues.end());
@@ -158,23 +152,46 @@ int main(int argc, char** argv )
 	tableMarker.lifetime = ros::Duration();
 	tableMarker.ns = "table";
 	tableMarker.id = 0;
-	tableMarker.type = visualization_msgs::Marker::CUBE;
+
+	tableMarker.type = visualization_msgs::Marker::TRIANGLE_LIST;
+
+	geometry_msgs::Polygon* poly = polygon::loadPolygon(path_poly);
+	shape_msgs::Mesh mesh = polygon::createMeshFromPolygon(*poly, 0.0, 0.05);
+	for (size_t i = 0; i < mesh.triangles.size(); i++)
+	{
+		shape_msgs::MeshTriangle tri = mesh.triangles[i];
+		unsigned int p0 = tri.vertex_indices[0];
+		unsigned int p1 = tri.vertex_indices[1];
+		unsigned int p2 = tri.vertex_indices[2];
+
+		ROS_ASSERT(p0 < mesh.vertices.size());
+		ROS_ASSERT(p1 < mesh.vertices.size());
+		ROS_ASSERT(p2 < mesh.vertices.size());
+		tableMarker.points.push_back(mesh.vertices[p0]);
+		tableMarker.points.push_back(mesh.vertices[p1]);
+		tableMarker.points.push_back(mesh.vertices[p2]);
+
+//		tableMarker.color.r = 0.67;
+//		tableMarker.color.g = 0.33;
+//		tableMarker.color.b = 0.0;
+		tableMarker.color.r = (float)205/255;
+		tableMarker.color.g = (float)102/255;
+		tableMarker.color.b = (float)29/255 *0;
+		tableMarker.color.a = 1.0;
+	}
+
+//	tableMarker.type = visualization_msgs::Marker::CUBE;
 	tableMarker.pose.position.x = 0;
 	tableMarker.pose.position.y = 0;
-	tableMarker.pose.position.z = 0;
+	tableMarker.pose.position.z = 0.02;
 	tableMarker.pose.orientation.x = 0.0;
 	tableMarker.pose.orientation.y = 0.0;
 	tableMarker.pose.orientation.z = 0.0;
 	tableMarker.pose.orientation.w = 1.0;
     // Set the scale of the marker -- 1x1x1 here means 1m on a side
-	tableMarker.scale.x = width;
-	tableMarker.scale.y = height;
-	tableMarker.scale.z = 0.02;
-
-	tableMarker.color.r = 0.67;
-	tableMarker.color.g = 0.33;
-	tableMarker.color.b = 0.0;
-	tableMarker.color.a = 1.0;
+	tableMarker.scale.x = 1.0;
+	tableMarker.scale.y = 1.0;
+	tableMarker.scale.z = 0.6;
 
 	markerArray.markers.push_back(tableMarker);
 
