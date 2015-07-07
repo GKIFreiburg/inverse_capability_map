@@ -6,6 +6,7 @@ public:
 //	virtual Primitive() = 0;
 //	virtual ~Primitive() = 0;
 
+	// create a polygon which center is at origin
 	virtual geometry_msgs::Polygon createPolygon() = 0;
 };
 
