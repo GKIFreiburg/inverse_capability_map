@@ -45,21 +45,21 @@ InverseCapability InverseCapability::operator+(const InverseCapability &other) c
 	InverseCapability result, copy_other;
 	copy_other = other;
 	std::map<double, double>::const_iterator it;
-	std::map<double, double>::iterator find_it;
+	std::map<double, double>::iterator other_it;
 	for (it = this->thetas_.begin(); it != this->thetas_.end(); it++)
 	{
-		find_it = copy_other.thetas_.find(it->first);
+		other_it = copy_other.thetas_.find(it->first);
 		// key not found in other, store in result inverse capability
-		if (find_it == copy_other.thetas_.end())
+		if (other_it == copy_other.thetas_.end())
 			result.setThetaPercent(*it);
 		else
 		{
 			// if match found in other, add percentages of both and add to result
 			// further, remove match from other, since its match was treated
-			ROS_ASSERT(it->first == find_it->first);
-			double percent = it->second + find_it->second;
+			ROS_ASSERT(it->first == other_it->first);
+			double percent = it->second + other_it->second;
 			result.setThetaPercent(std::make_pair(it->first, percent));
-			copy_other.thetas_.erase(find_it);
+			copy_other.thetas_.erase(other_it);
 		}
 	}
 
