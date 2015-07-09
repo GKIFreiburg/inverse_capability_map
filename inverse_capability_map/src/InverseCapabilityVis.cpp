@@ -79,11 +79,10 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    std::string frame = tree->getBaseName();
     unsigned int theta_resolution = tree->getThetaResolution();
 
     ROS_INFO("Group name is: %s", tree->getGroupName().c_str());
-    ROS_INFO("Base frame is: %s", frame.c_str());
+    ROS_INFO("Base frame is: %s", tree->getBaseName().c_str());
     ROS_INFO("Tip frame is: %s", tree->getTipName().c_str());
     ROS_INFO("Resolution is: %g", tree->getResolution());
     ROS_INFO("Theta resolution is: %d\n", theta_resolution);
@@ -126,6 +125,9 @@ int main(int argc, char** argv)
     		"z values: [%lf, %lf]",
     		startX, endX, startY, endY, startZ, endZ );
 
+    std::string frame = "map";
+    ROS_INFO("Markers are published in frame: %s", frame.c_str());
+
     ros::NodeHandle n;
     ros::Rate r(1.0);
 
@@ -157,7 +159,7 @@ int main(int argc, char** argv)
 
 		visualization_msgs::Marker marker;
 
-		marker.header.frame_id = frame;
+		marker.header.frame_id = "map";
 		marker.header.stamp = ros::Time(0);
 
 		marker.ns = tree->getGroupName();

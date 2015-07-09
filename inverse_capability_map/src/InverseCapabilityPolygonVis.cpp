@@ -87,11 +87,10 @@ int main(int argc, char** argv )
         exit(1);
     }
 
-    std::string frame = tree->getBaseName();
     unsigned int theta_resolution = tree->getThetaResolution();
 
     ROS_INFO("Group name is: %s", tree->getGroupName().c_str());
-    ROS_INFO("Base frame is: %s", frame.c_str());
+    ROS_INFO("Base frame is: %s", tree->getBaseName().c_str());
     ROS_INFO("Tip frame is: %s", tree->getTipName().c_str());
     ROS_INFO("Resolution is: %g", tree->getResolution());
     ROS_INFO("Theta resolution is: %d\n", theta_resolution);
@@ -146,14 +145,16 @@ int main(int argc, char** argv )
 	visualization_msgs::MarkerArray markerArray;
 
 	visualization_msgs::Marker tableMarker;
-	tableMarker.header.frame_id = "table";
+	std::string frame = "map";
+	tableMarker.header.frame_id = frame;
 	tableMarker.header.stamp = ros::Time(0);
 	tableMarker.action = visualization_msgs::Marker::ADD;
 	tableMarker.lifetime = ros::Duration();
 	tableMarker.ns = "table";
 	tableMarker.id = 0;
-
 	tableMarker.type = visualization_msgs::Marker::TRIANGLE_LIST;
+
+	ROS_INFO("Markers are published in frame: %s", frame.c_str());
 
 	geometry_msgs::Polygon* poly = polygon::loadPolygon(path_poly);
 	shape_msgs::Mesh mesh = polygon::createMeshFromPolygon(*poly, 0.0, 0.05);
@@ -222,7 +223,7 @@ int main(int argc, char** argv )
 
 		visualization_msgs::Marker marker;
 
-		marker.header.frame_id = "table";
+		marker.header.frame_id = frame;
 		marker.header.stamp = ros::Time(0);
 
 		marker.ns = tree->getGroupName();

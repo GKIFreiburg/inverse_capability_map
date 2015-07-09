@@ -33,7 +33,7 @@
 	<arg name="d" value="-d" if="$(arg 3darrowdimension)" />
 	<arg name="d" value="" unless="$(arg 3darrowdimension)" />
 
-    <node pkg="inverse_capability_map" type="inverse_capability_object_vis" name="inverse_capability_object_vis"
+    <node pkg="inverse_capability_map" type="inverse_capability_vis" name="inverse_capability_vis"
     	args=" -p $(arg path_name)
     	$(arg c)
     	$(arg d)
