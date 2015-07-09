@@ -133,7 +133,7 @@ void setArmsToSide(robot_state::RobotState& robot_state)
 	std::map< std::string, double > values;
 	// right_arm_to_side is a group defined in pr2.srdf (tidyup_pr2_moveit_config)
 	if (!right_arm->getVariableDefaultPositions("right_arm_to_side", values))
-		ROS_WARN("%s: Could not set positions for %s to side!", arm.c_str());
+		ROS_WARN("%s: Could not set positions for %s to side!", __func__, arm.c_str());
 	std::map< std::string, double >::iterator it;
 	for (it = values.begin(); it != values.end(); it++)
 	{
@@ -144,7 +144,7 @@ void setArmsToSide(robot_state::RobotState& robot_state)
 	arm = "left_arm";
 	const moveit::core::JointModelGroup* left_arm = robot_state.getJointModelGroup(arm);
 	if (!left_arm->getVariableDefaultPositions("left_arm_to_side", values))
-		ROS_WARN("%s: Could not set positions for %s to side!", arm.c_str());
+		ROS_WARN("%s: Could not set positions for %s to side!", __func__, arm.c_str());
 
 	for (it = values.begin(); it != values.end(); it++)
 	{
@@ -207,9 +207,6 @@ int main(int argc, char** argv)
 	robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
 	planning_scene::PlanningScene planning_scene(kinematic_model);
 
-	collision_detection::CollisionRequest collision_request;
-	collision_detection::CollisionResult collision_result;
-
 	robot_state::RobotState& robot_state = planning_scene.getCurrentStateNonConst();
 	// set robot state arms at side
 	setArmsToSide(robot_state);
@@ -220,6 +217,46 @@ int main(int argc, char** argv)
 //    	double position = robot_state.getVariablePosition(names[i]);
 //    	ROS_INFO_STREAM(names[i] << " " << position);
 //    }
+
+	collision_detection::CollisionRequest collision_request;
+	collision_detection::CollisionResult collision_result;
+	collision_detection::AllowedCollisionMatrix acm = planning_scene.getAllowedCollisionMatrix();
+//	const moveit::core::RobotModelConstPtr& robot_model = robot_state.getRobotModel();
+//	const std::vector<std::string>& link_names = robot_model->getLinkModelNames();
+//	std::set<std::string> links(link_names.begin(), link_names.end());
+//
+//	std::string arm = "right_arm";
+//	const moveit::core::JointModelGroup* arm_group = robot_state.getJointModelGroup(arm);
+//	std::vector<std::string> arm_links = arm_group->getLinkModelNames();
+//
+//	for (size_t i = 0; i < arm_links.size(); i++)
+//		links.erase(arm_links[i]);
+//
+//	arm = "left_arm";
+//	arm_group = robot_state.getJointModelGroup(arm);
+//	arm_links = arm_group->getLinkModelNames();
+//	for (size_t i = 0; i < arm_links.size(); i++)
+//		links.erase(arm_links[i]);
+//
+//	std::vector<std::string> base_links;
+//	for (size_t i; i < link_names.size(); i++)
+//	{
+//		if (link_names[i].find("base") == std::string::npos)
+//			continue;
+//		else
+//			base_links.push_back(link_names[i]);
+//	}
+//	ROS_ASSERT(base_links.size() == 3);
+//	for (size_t i = 0; i < base_links.size(); i++)
+//		links.erase(base_links[i]);
+//
+//	std::set<std::string>::iterator it;
+//	for (it = links.begin(); it != links.end(); it++)
+//	{
+//		// true means that collision checking is ignored for given link
+//		acm.setEntry(*it, true);
+//	}
+
 
 	// Add polygon to planning scene
 	ROS_INFO("Planning frame: %s", planning_scene.getPlanningFrame().c_str());
@@ -239,14 +276,14 @@ int main(int argc, char** argv)
 	co.mesh_poses.push_back(pose);
 	co.operation = co.ADD;
 	planning_scene.processCollisionObjectMsg(co);
+//	moveit_msgs::ObjectColor oc;
+//	oc.id = co.id;
+//	oc.color.r = 0.67;
+//	oc.color.g = 0.33;
+//	oc.color.b = 0.0;
+//	oc.color.a = 1.0;
+//	planning_scene.setObjectColor(oc.id, oc.color);
 
-	moveit_msgs::ObjectColor oc;
-	oc.id = co.id;
-	oc.color.r = 0.67;
-	oc.color.g = 0.33;
-	oc.color.b = 0.0;
-	oc.color.a = 1.0;
-	planning_scene.setObjectColor(oc.id, oc.color);
 
 	// start pose at left lower corner of bounding box, but in center of grid cell
 	geometry_msgs::PoseStamped start_pose;
@@ -320,7 +357,7 @@ int main(int argc, char** argv)
 						robot_state.setVariablePosition("world_joint/theta", mit->first);
 						planning_scene.setCurrentState(robot_state);
 						collision_result.clear();
-						planning_scene.checkCollision(collision_request, collision_result);
+						planning_scene.checkCollision(collision_request, collision_result, robot_state, acm);
 						// if collision is found, remove (theta, percent) from thetas
 						if (collision_result.collision)
 							thetas.erase(mit);
