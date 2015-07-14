@@ -220,43 +220,6 @@ int main(int argc, char** argv)
 
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
-	collision_detection::AllowedCollisionMatrix acm = planning_scene.getAllowedCollisionMatrix();
-//	const moveit::core::RobotModelConstPtr& robot_model = robot_state.getRobotModel();
-//	const std::vector<std::string>& link_names = robot_model->getLinkModelNames();
-//	std::set<std::string> links(link_names.begin(), link_names.end());
-//
-//	std::string arm = "right_arm";
-//	const moveit::core::JointModelGroup* arm_group = robot_state.getJointModelGroup(arm);
-//	std::vector<std::string> arm_links = arm_group->getLinkModelNames();
-//
-//	for (size_t i = 0; i < arm_links.size(); i++)
-//		links.erase(arm_links[i]);
-//
-//	arm = "left_arm";
-//	arm_group = robot_state.getJointModelGroup(arm);
-//	arm_links = arm_group->getLinkModelNames();
-//	for (size_t i = 0; i < arm_links.size(); i++)
-//		links.erase(arm_links[i]);
-//
-//	std::vector<std::string> base_links;
-//	for (size_t i; i < link_names.size(); i++)
-//	{
-//		if (link_names[i].find("base") == std::string::npos)
-//			continue;
-//		else
-//			base_links.push_back(link_names[i]);
-//	}
-//	ROS_ASSERT(base_links.size() == 3);
-//	for (size_t i = 0; i < base_links.size(); i++)
-//		links.erase(base_links[i]);
-//
-//	std::set<std::string>::iterator it;
-//	for (it = links.begin(); it != links.end(); it++)
-//	{
-//		// true means that collision checking is ignored for given link
-//		acm.setEntry(*it, true);
-//	}
-
 
 	// Add polygon to planning scene
 	ROS_INFO("Planning frame: %s", planning_scene.getPlanningFrame().c_str());
@@ -297,10 +260,8 @@ int main(int argc, char** argv)
 
 	geometry_msgs::PoseStamped object_in_map_frame, robot_torso_in_object_frame;
 	for (unsigned int l = 0; l != length_cells; l++)
-//	for (unsigned int l = 0; l != 1; l++)
     {
 		for (unsigned int w = 0; w != width_cells; w++)
-//		for (unsigned int w = 0; w != 1; w++)
     	{
     		// update object_pose
 			object_in_map_frame = start_pose;
@@ -357,7 +318,7 @@ int main(int argc, char** argv)
 						robot_state.setVariablePosition("world_joint/theta", mit->first);
 						planning_scene.setCurrentState(robot_state);
 						collision_result.clear();
-						planning_scene.checkCollision(collision_request, collision_result, robot_state, acm);
+						planning_scene.checkCollision(collision_request, collision_result, robot_state);
 						// if collision is found, remove (theta, percent) from thetas
 						if (collision_result.collision)
 							thetas.erase(mit);

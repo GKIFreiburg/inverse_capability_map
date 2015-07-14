@@ -23,8 +23,8 @@
     <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_object_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
     <arg name="path_capa" value="$(find capability_map_generator)/maps/pr2_map_$(arg group_name)_2.5cm.cpm" />
 
-    <node pkg="inverse_capability_map_generator" type="inverse_capability_object_generator" 
-    	name="inverse_capability_object_generator"
+    <node pkg="inverse_capability_map_generator" type="inverse_capability_generator" 
+    	name="inverse_capability_generator"
     	args="-p $(arg path_name) -c $(arg path_capa)
     	-r $(arg r) -t $(arg t)
     	-x $(arg x1) -x $(arg x2) -y $(arg y1) -y $(arg y2) -z $(arg z1) -z $(arg z2)"

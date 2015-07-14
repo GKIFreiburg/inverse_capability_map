@@ -21,8 +21,8 @@
 		<arg name="load_robot_description" value="true"/>
 	</include>
 
-    <node pkg="inverse_capability_map_generator" type="inverse_capability_table_generator"
-    	name="inverse_capability_table_generator"
+    <node pkg="inverse_capability_map_generator" type="inverse_capability_polygon_generator"
+    	name="inverse_capability_polygon_generator"
     	args="-p $(arg path_name) -o $(arg path_inv_obj)
     	-i $(arg path_poly)
     	-r $(arg r)"
