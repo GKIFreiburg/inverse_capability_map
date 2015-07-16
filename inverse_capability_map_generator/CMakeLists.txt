@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   tidyup_pr2_moveit_config # dependency due to launch file (robot description)
 )
 
-find_package(EIGEN REQUIRED)
+find_package(eigen REQUIRED)
 find_package(octomap REQUIRED)
 
 ## System dependencies are found with CMake's conventions

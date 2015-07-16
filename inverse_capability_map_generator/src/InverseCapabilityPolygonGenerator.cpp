@@ -162,17 +162,6 @@ int main(int argc, char** argv)
 
 	// parameters and aliases
 	const double& resolution       = input.resolution;
-	bool collision_checking;
-	nhPriv.param("collision_checking", collision_checking, true);
-
-	polygon::bbox bbox = polygon::computeBoundingBox(*poly);
-	double widthBbox, lengthBbox;
-	widthBbox = bbox.xmax - bbox.xmin;
-	lengthBbox = bbox.ymax - bbox.ymin;
-	ROS_INFO("Bounding box width : %lf", widthBbox);
-	ROS_INFO("Bounding box length: %lf", lengthBbox);
-	polygon::center center = polygon::computeBoundingBoxCenter(bbox);
-	ROS_INFO("Bounding box center: (%lf, %lf)", center.x, center.y);
 
 	InverseCapabilityOcTree table_tree(resolution);
 	table_tree.setGroupName(object_tree->getGroupName());
@@ -183,7 +172,23 @@ int main(int argc, char** argv)
 	ROS_INFO("Base frame is: %s", table_tree.getBaseName().c_str());
 	ROS_INFO("Tip frame is: %s", table_tree.getTipName().c_str());
 	ROS_INFO("Resolution is: %g", table_tree.getResolution());
-	ROS_INFO("Theta resolution is: %d\n", table_tree.getThetaResolution());
+	ROS_INFO("Theta resolution is: %d", table_tree.getThetaResolution());
+	bool collision_checking;
+	nhPriv.param("collision_checking", collision_checking, true);
+	ROS_INFO("Collision checking is turned %s", collision_checking ? "ON" : "OFF");
+	std::string poly_name;
+	nhPriv.param<std::string>("poly_name", poly_name, "#UNDEFINED");
+	ROS_INFO("Polygon name is: %s\n", poly_name.c_str());
+
+
+	polygon::bbox bbox = polygon::computeBoundingBox(*poly);
+	double widthBbox, lengthBbox;
+	widthBbox = bbox.xmax - bbox.xmin;
+	lengthBbox = bbox.ymax - bbox.ymin;
+	ROS_INFO("Bounding box width : %lf", widthBbox);
+	ROS_INFO("Bounding box length: %lf", lengthBbox);
+	polygon::center center = polygon::computeBoundingBoxCenter(bbox);
+	ROS_INFO("Bounding box center: (%lf, %lf)", center.x, center.y);
 
 	unsigned int width_cells, length_cells, grid_cells;
 	width_cells  = round(widthBbox / resolution);
@@ -247,27 +252,54 @@ int main(int argc, char** argv)
 //	oc.color.a = 1.0;
 //	planning_scene.setObjectColor(oc.id, oc.color);
 
+	ros::NodeHandle nh;
+	ros::Publisher pub_ps = nh.advertise<moveit_msgs::PlanningScene>("planning_scene", 1, true);
+
 
 	// start pose at left lower corner of bounding box, but in center of grid cell
 	geometry_msgs::PoseStamped start_pose;
 	start_pose.header.frame_id = planning_scene.getPlanningFrame();
-	start_pose.pose.position.x = center.x - widthBbox / 2 + resolution / 2;
-	start_pose.pose.position.y = center.y - lengthBbox / 2 + resolution / 2;
+	start_pose.pose.position.x = center.x - widthBbox / 2;
+	start_pose.pose.position.y = center.y - lengthBbox / 2;
 	start_pose.pose.position.z = t.getOrigin().z();
 	tf::Quaternion q;
 	q.setRPY(0, 0, 0);
 	tf::quaternionTFToMsg(q, start_pose.pose.orientation);
 
+//bool sent = false;
+	bool print = false;
+	octomap::OcTreeKey key = object_tree->coordToKey(-0.75, -0.15, 0.05);
+
+	octomath::Vector3 v = object_tree->keyToCoord(key);
+	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
+	octomap::OcTreeKey key2 = object_tree->coordToKey(0.04,0,0);
+	v = object_tree->keyToCoord(key2);
+	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
+
+	if (key == key2)
+		ROS_WARN("EQUAL");
+	else
+		ROS_WARN("not equal");
+
+	double eps = 0.001;
 	geometry_msgs::PoseStamped object_in_map_frame, robot_torso_in_object_frame;
-	for (unsigned int l = 0; l != length_cells; l++)
+	for (unsigned int l = 0; l <= length_cells; l++)
+//	for (unsigned int l = 4; l < 5; l++)
     {
-		for (unsigned int w = 0; w != width_cells; w++)
+		for (unsigned int w = 0; w <= width_cells; w++)
+//		for (unsigned int w = width_cells; w < width_cells + 1; w++)
+//		for (unsigned int w = 4; w < 5; w++)
     	{
     		// update object_pose
 			object_in_map_frame = start_pose;
 			object_in_map_frame.pose.position.x = start_pose.pose.position.x + w * resolution;
 			object_in_map_frame.pose.position.y = start_pose.pose.position.y + l * resolution;
-
+//			if (object_in_map_frame.pose.position.x > 0)
+//			{
+//				object_in_map_frame.pose.position.x += resolution;
+//				object_in_map_frame.pose.position.y += resolution;
+//			}
+//			if (object_in_map_frame.pose.position.y > 0)
 			// loop through all inverse capabilities
 			for (InverseCapabilityOcTree::leaf_iterator it = object_tree->begin_leafs(); it != object_tree->end_leafs(); ++it)
 			{
@@ -296,6 +328,11 @@ int main(int argc, char** argv)
 				tf::Pose robot_torso_in_map_frame;
 				robot_torso_in_map_frame = robot_torso_in_obj_frame * obj_in_map_frame;
 
+//				tf::Vector3 a = robot_torso_in_map_frame.getOrigin();
+//				a.setX(a.x() + resolution);
+//				a.setY(a.y() + resolution);
+//				robot_torso_in_map_frame.setOrigin(a);
+
 				// check if robot position is inside polygon, meaning invalid position
 				// if return value of pointInPolygon is odd then position is in polygon
 				if (polygon::pointInPolygon(*poly, robot_torso_in_map_frame.getOrigin().x(), robot_torso_in_map_frame.getOrigin().y()) % 2 != 0)
@@ -306,23 +343,51 @@ int main(int argc, char** argv)
 
 				InverseCapability inv_obj = it->getValue();
 
+
 				if (collision_checking)
 				{
 					std::map<double, double> thetas = inv_obj.getThetasPercent();
 					std::map<double, double>::iterator mit;
+
+					std::set<double> delete_thetas;
 					for (mit = thetas.begin(); mit != thetas.end(); mit++)
 					{
 						// full collision check, check if robot is in collision with polygon using base_link as reference frame
+						// TODO: replace +0.05 with transform. From Torso to Base Link
 						robot_state.setVariablePosition("world_joint/x", robot_torso_in_map_frame.getOrigin().x());
 						robot_state.setVariablePosition("world_joint/y", robot_torso_in_map_frame.getOrigin().y());
 						robot_state.setVariablePosition("world_joint/theta", mit->first);
 						planning_scene.setCurrentState(robot_state);
+
+//						if (key == table_tree.coordToKey(robot_torso_in_map_frame.getOrigin().x(), robot_torso_in_map_frame.getOrigin().y(), 0.05) && it.getZ() == (double)0.05)
+//						{
+//							ROS_INFO("theta size: %lu", thetas.size());
+//							ROS_INFO("mit->first %lf - 1.57 = :%lf",  mit->first, mit->first - 1.57);
+//							if ((mit->first - 1.57) < 0.01 && (mit->first - 1.57) > 0.0)
+//							{
+//								ROS_WARN("INV CAP SIZE: %lu", inv_obj.getThetasPercent().size());
+//								for (std::map<double, double>::const_iterator it = inv_obj.getThetasPercent().begin(); it != inv_obj.getThetasPercent().end(); it++)
+//									ROS_INFO("Theta: %lf, Percent: %lf", it->first, it->second);
+//								ROS_WARN("COORD: x: %lf, y: %lf, z: %lf", robot_torso_in_map_frame.getOrigin().x(), robot_torso_in_map_frame.getOrigin().y(), robot_torso_in_map_frame.getOrigin().z());
+//								ROS_ERROR("l: %d, w: %d, itx: %lf, ity: %lf, itz: %lf\n", l, w, it.getX(), it.getY(), it.getZ());
+//								moveit_msgs::PlanningScene ps_msg;
+//								planning_scene.getPlanningSceneMsg(ps_msg);
+//								pub_ps.publish(ps_msg);
+//								ros::spinOnce();
+//							}
+//						}
+
 						collision_result.clear();
 						planning_scene.checkCollision(collision_request, collision_result, robot_state);
 						// if collision is found, remove (theta, percent) from thetas
 						if (collision_result.collision)
-							thetas.erase(mit);
+							// TODO: ERROR HERE!!!
+//							thetas.erase(mit);
+							delete_thetas.insert(mit->first);
 					}
+					for (std::set<double>::iterator sit = delete_thetas.begin(); sit != delete_thetas.end(); sit++)
+						thetas.erase(*sit);
+
 					// update inv_obj, in case some (theta, percent) have been removed
 					inv_obj.setThetasPercent(thetas);
 				}
@@ -333,7 +398,7 @@ int main(int argc, char** argv)
 				v.setZ(v.getZ() - t.getOrigin().z());
 				robot_torso.setOrigin(v);
 
-				// look in current tree, if inverse capability already exists, if not an empty InverseCapability is return
+				// look in current tree if inverse capability already exists, if not an empty InverseCapability is return
 				InverseCapability inv_table = table_tree.getNodeInverseCapability(robot_torso.getOrigin().x(),
 						robot_torso.getOrigin().y(),
 						robot_torso.getOrigin().z());
@@ -379,4 +444,6 @@ int main(int argc, char** argv)
     {
         ROS_INFO("Inverse Capability map written to file %s", input.path_name.c_str());
     }
+
+    ros::spin();
 }

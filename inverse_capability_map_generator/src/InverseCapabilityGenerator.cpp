@@ -147,6 +147,11 @@ int main(int argc, char** argv)
     inv_tree.setBaseName(capa_tree->getBaseName());
     inv_tree.setTipName(capa_tree->getTipName());
     inv_tree.setThetaResolution(theta_resolution);
+	ROS_INFO("Group name is: %s", inv_tree.getGroupName().c_str());
+	ROS_INFO("Base frame is: %s", inv_tree.getBaseName().c_str());
+	ROS_INFO("Tip frame is: %s", inv_tree.getTipName().c_str());
+	ROS_INFO("Resolution is: %g", inv_tree.getResolution());
+	ROS_INFO("Theta resolution is: %d", inv_tree.getThetaResolution());
 
     // sort x, y and z values
     std::sort(x_args.begin(), x_args.end());
@@ -185,6 +190,7 @@ int main(int argc, char** argv)
         {
             for(double z = startZ; z <= endZ; z += resolution)
             {
+
 				std::map<double, double> inv_capa;
                 for (unsigned int i = 0; i < theta_resolution; ++i)
                 {
@@ -202,6 +208,7 @@ int main(int argc, char** argv)
                     tf::Pose roboPose;
                     tf::poseMsgToTF(robo, roboPose);
                     // compute inverse transformation, from object frame to robot frame
+                    // object located at origin
                     tf::Pose result = roboPose.inverse();
 
                 	// look up percent for current robot pose
