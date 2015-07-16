@@ -8,25 +8,24 @@
     <arg name="t" value="16" />
     
     <!-- bounding box x [-1.5, 1.5]; y [-1.5, 1.5]; z [-1.0, 1.0] -->
-    <arg name="x1" value="0" />
+    <arg name="x1" value="-1.5" />
     <arg name="x2" value="1.5" />
     
-    <arg name="y1" value="0" />
+    <arg name="y1" value="-1.5" />
     <arg name="y2" value="1.5" />
     
-    <arg name="z1" value="-1.0" />
-    <arg name="z2" value="1.0" />
+    <arg name="z1" value="0.0" />
+    <arg name="z2" value="0.0" />
     
     <!-- display color table -->
     <arg name="colortable" value="false" />
     <!-- draw arrows in 3d -->
     <arg name="3darrowdimension" value="true" />
     
-
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 	   
 	<!-- path to inverse capability map -->
-    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_object_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
     
     <arg name="c" value="-c" if="$(arg colortable)" />
     <arg name="c" value="" unless="$(arg colortable)" />

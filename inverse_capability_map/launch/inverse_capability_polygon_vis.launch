@@ -1,32 +1,35 @@
 <launch>
+    <!-- name of polygon without ending -->
+    <arg name="poly_name" value="table1" />
+
     <!-- select group_name: left_arm or right_arm or combined-->
-    <arg name="group_name" value="combined" />
+    <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
     <arg name="r" value="0.1" />
     <!-- theta_resolution (unsigned int) -->
     <arg name="t" value="16" />
+       
+    <!-- bounding box for displaying arrows -->
+    <arg name="x1" value="-6.0" />
+    <arg name="x2" value="6.0" />
     
-    <!-- name of polygon without ending -->
-    <arg name="poly_name" value="tablew213h102" />
+    <arg name="y1" value="-6.0" />
+    <arg name="y2" value="6.0" />
     
-    <!-- bounding box x [-1.5, 1.5]; y [-1.5, 1.5]; z [-1.0, 1.0] -->
-    <arg name="x1" value="0" />
-    <arg name="x2" value="3.0" />
-    
-    <arg name="y1" value="0" />
-    <arg name="y2" value="3.0" />
-    
-    <arg name="z1" value="1.0" />
-    <arg name="z2" value="-1.0" />
+    <arg name="z1" value="0.0" />
+    <arg name="z2" value="0.0" />
     
     <!-- display color table -->
     <arg name="colortable" value="false" />
     <!-- draw arrows in 3d -->
     <arg name="3darrowdimension" value="false" />
     
-    <arg name="min_percent" value="0" />
+    <!-- display grid positions -->
+    <arg name="show_grid" value="true" /> 
     
+	<!-- only showing arrows of torso position with a percentage over min_percent variable -->
+    <arg name="min_percent" value="0" />
 
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 	   
@@ -48,5 +51,7 @@
     	-x $(arg x1) -x $(arg x2) -y $(arg y1) -y $(arg y2) -z $(arg z1) -z $(arg z2)"
 		output="screen">
 		<param name="minimum_percent" type="double" value="$(arg min_percent)" />
+		<param name="poly_name" type="string" value="$(arg poly_name)" />
+		<param name="show_grid" type="bool" value="$(arg show_grid)" />
     </node>
 </launch>
