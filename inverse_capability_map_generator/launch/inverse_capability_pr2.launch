@@ -1,7 +1,7 @@
 <launch>
     
     <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="left_arm" />
+    <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m -->
     <arg name="r" value="0.1" />
@@ -9,18 +9,18 @@
     <arg name="t" value="16" />
     
 	<!-- bounding box -->   
-    <arg name="x1" value="-1.5" />
-    <arg name="x2" value="1.5" />
+    <arg name="x1" value="-2.0" />
+    <arg name="x2" value="2.0" />
     
-    <arg name="y1" value="-1.5" />
-    <arg name="y2" value="1.5" />
+    <arg name="y1" value="-2.0" />
+    <arg name="y2" value="2.0" />
     
     <arg name="z1" value="1.0" />
     <arg name="z2" value="-1.0" />
 
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 
-    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_object_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
     <arg name="path_capa" value="$(find capability_map_generator)/maps/pr2_map_$(arg group_name)_2.5cm.cpm" />
 
     <node pkg="inverse_capability_map_generator" type="inverse_capability_generator" 

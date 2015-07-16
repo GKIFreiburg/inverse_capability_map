@@ -1,7 +1,9 @@
 <launch>
-    
+    <!-- polygon name -->
+    <arg name="poly_name" value="table1" />
+  
     <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="left_arm" />
+    <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
     <arg name="r" value="0.1" />
@@ -10,12 +12,12 @@
             
     <arg name="collision_checking" value="true" />
     
-    <arg name="path_poly" value="$(find primitive_to_polygon)/polygons/tablew213h102.poly" />
-    
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 
-    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_table_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
-    <arg name="path_inv_obj" value="$(find inverse_capability_map_generator)/maps/inv_cap_object_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_poly" value="$(find primitive_to_polygon)/polygons/$(arg poly_name).poly"/>
+
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+    <arg name="path_inv_obj" value="$(find inverse_capability_map_generator)/maps/inv_cap_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
     
 	<include file="$(find tidyup_pr2_moveit_config)/launch/planning_context.launch">
 		<arg name="load_robot_description" value="true"/>
@@ -28,5 +30,6 @@
     	-r $(arg r)"
     	output="screen" required="true">
     	<param name="collision_checking" type="bool" value="$(arg collision_checking)" />
+    	<param name="poly_name" type="string" value="$(arg poly_name)" />
     </node>
 </launch>
