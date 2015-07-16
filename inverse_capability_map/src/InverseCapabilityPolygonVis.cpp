@@ -12,6 +12,60 @@
 
 using namespace inverse_capability_map_utils;
 
+void showGrid(visualization_msgs::MarkerArray& markerArray, const geometry_msgs::Polygon* poly, const double resolution)
+{
+	polygon::bbox bbox = polygon::computeBoundingBox(*poly);
+	double widthBbox, lengthBbox;
+	widthBbox = bbox.xmax - bbox.xmin;
+	lengthBbox = bbox.ymax - bbox.ymin;
+	polygon::center center = polygon::computeBoundingBoxCenter(bbox);
+
+	unsigned int width_cells, length_cells, grid_cells;
+	width_cells  = round(widthBbox / resolution);
+	length_cells = round(lengthBbox / resolution);
+	grid_cells   = width_cells * length_cells;
+
+	visualization_msgs::Marker marker;
+	std::string frame = "map";
+	marker.header.frame_id = frame;
+	marker.header.stamp = ros::Time(0);
+	marker.action = visualization_msgs::Marker::ADD;
+	marker.lifetime = ros::Duration();
+	marker.ns = "grid";
+	marker.id = 0;
+	marker.type = visualization_msgs::Marker::SPHERE;
+
+	marker.color.r = (float)255/255;
+	marker.color.g = (float)0/255;
+	marker.color.b = (float)0/255;
+	marker.color.a = 1.0;
+
+    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+	marker.scale.x = 0.02;
+	marker.scale.y = 0.02;
+	marker.scale.z = 0.02;
+	double x = center.x - widthBbox / 2 + resolution / 2;
+	double y = center.y - lengthBbox / 2 + resolution / 2;
+	marker.pose.position.x = x;
+	marker.pose.position.y = y;
+	marker.pose.position.z = 0.02;
+	marker.pose.orientation.x = 0.0;
+	marker.pose.orientation.y = 0.0;
+	marker.pose.orientation.z = 0.0;
+	marker.pose.orientation.w = 1.0;
+
+	for (unsigned int l = 0; l <= length_cells; l++)
+	{
+		for (unsigned int w = 0; w <= width_cells; w++)
+		{
+			marker.id += 1;
+			marker.pose.position.x = x + w * resolution;
+			marker.pose.position.y = y + l * resolution;
+			markerArray.markers.push_back(marker);
+		}
+	}
+}
+
 int main(int argc, char** argv )
 {
     ros::init(argc, argv, "inverse_capability_polygon_visualization");
@@ -93,7 +147,16 @@ int main(int argc, char** argv )
     ROS_INFO("Base frame is: %s", tree->getBaseName().c_str());
     ROS_INFO("Tip frame is: %s", tree->getTipName().c_str());
     ROS_INFO("Resolution is: %g", tree->getResolution());
-    ROS_INFO("Theta resolution is: %d\n", theta_resolution);
+    ROS_INFO("Theta resolution is: %d", theta_resolution);
+
+	ros::NodeHandle nhPriv("~");
+	double minimum_percent;
+	nhPriv.param("minimum_percent", minimum_percent, 0.0);
+	std::string poly_name;
+	nhPriv.param<std::string>("poly_name", poly_name, "#UNDEFINED");
+	ROS_INFO("Polygon name is: %s\n", poly_name.c_str());
+	bool show_grid;
+	nhPriv.param("show_grid", show_grid, false);
 
     // get x, y and z values and sort them
     std::vector<double> xValues = x_arg.getValue();
@@ -196,12 +259,12 @@ int main(int argc, char** argv )
 
 	markerArray.markers.push_back(tableMarker);
 
-	double min_percent, max_percent, minimum_percent;
+	if (show_grid)
+		showGrid(markerArray, poly, tree->getResolution());
+
+	double min_percent, max_percent;
 	min_percent = HUGE_VAL;
 	max_percent = 0.0;
-
-	ros::NodeHandle nhPriv("~");
-	nhPriv.param("minimum_percent", minimum_percent, 0.0);
 
 	// loop through all inverse capabilities
 	for (InverseCapabilityOcTree::leaf_iterator it = tree->begin_leafs(); it != tree->end_leafs(); ++it)
@@ -265,13 +328,15 @@ int main(int argc, char** argv )
 			// compute start and end point of arrow
 			angle = mit->first;
 
+//			start.x = it.getX() - tree->getResolution() / 2;
+//			start.y = it.getY() - tree->getResolution() / 2;
 			start.x = it.getX();
 			start.y = it.getY();
 			start.z = it.getZ();
 
-			end.x = it.getX() + (size / 2.0) * cos(angle);
-			end.y = it.getY() + (size / 2.0) * sin(angle);
-			end.z = it.getZ();
+			end.x = start.x + (size / 2.0) * cos(angle);
+			end.y = start.y + (size / 2.0) * sin(angle);
+			end.z = start.z;
 
 			// scale.x is the shaft diameter,
 			// and scale.y is the head diameter.
