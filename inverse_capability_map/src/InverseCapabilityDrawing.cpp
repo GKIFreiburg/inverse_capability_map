@@ -9,38 +9,60 @@ InverseCapabilityDrawing::InverseCapabilityDrawing(long int seed)
         srand48(seed);
 }
 
-std::pair<double, double> InverseCapabilityDrawing::drawBestOfXSamples(const planning_scene::PlanningScene& planning_scene,
-			const InverseCapabilityOcTree* tree, const std::string& surface_id, const geometry_msgs::Pose& surface_pose, unsigned int numberOfDraws)
+InverseCapabilityDrawing::~InverseCapabilityDrawing()
 {
-	std::pair<double, double> ret;
+}
 
-	return ret;
+InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::drawBestOfXSamples(planning_scene::PlanningScene& planning_scene,
+			const InverseCapabilityOcTree* tree, const geometry_msgs::PoseStamped& surface_pose, unsigned int numberOfDraws)
+{
+	unsigned int i = 0;
+	posePercent result;
+	result.percent = 0;
+	while (i < numberOfDraws)
+	{
+		moveit::core::RobotState& robot_state = planning_scene.getCurrentStateNonConst();
+
+		std::pair<double, double> z_range = computeZSamplingRange(robot_state, tree, surface_pose);
+
+		samplingBoundingBox bbox = computeSamplingBoundingBox(tree, z_range);
+
+		posePercent torso_pose_in_surface_frame = sampleTorsoPose(tree, bbox);
+
+		posePercent torso_pose_in_map_frame = transformPosePercentInMap(torso_pose_in_surface_frame, surface_pose);
+
+		posePercent base_pose;
+		if (!robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
+		{
+			if (base_pose.percent > result.percent)
+				result = base_pose;
+			i++;
+		}
+	}
+
+	return result;
+}
+
+double InverseCapabilityDrawing::getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name)
+{
+	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(link_name);
+	tf::Transform t;
+	tf::transformEigenToTF(e, t);
+	return (double)t.getOrigin().z();
 }
 
 
 std::pair<double, double> InverseCapabilityDrawing::computeZSamplingRange(const moveit::core::RobotState& robot_state,
 		const InverseCapabilityOcTree* tree,
-		const moveit_msgs::CollisionObject& table)
+		const geometry_msgs::PoseStamped& surface_pose)
 {
 	std::pair<double, double> range;
 
 	// get the current torso height
-	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(tree->getBaseName());
-	tf::Transform t;
-	tf::transformEigenToTF(e, t);
-	double torso_height = t.getOrigin().z();
+	double torso_height = getLinkHeight(robot_state, tree->getBaseName());
 
 	// get the table height
-	double table_height;
-	if (table.mesh_poses.size() != 0)
-		table_height = table.mesh_poses[0].position.z;
-	else if (table.primitive_poses.size() != 0)
-		table_height = table.primitive_poses[0].position.z;
-	else
-	{
-		ROS_ERROR("InverseCapabilityDrawing::%s: collision object %s does not have a position defined!", __func__, table.id.c_str());
-		return range;
-	}
+	double table_height = surface_pose.pose.position.z;
 
 	// compute offset between torso height to table height
 	double z_offset = torso_height - table_height;
@@ -53,6 +75,7 @@ std::pair<double, double> InverseCapabilityDrawing::computeZSamplingRange(const 
 	const moveit::core::JointModel* torso_joint =  torso_link->getParentJointModel();
 	const std::vector<std::string>& variable_names = torso_joint->getVariableNames();
 	ROS_ASSERT(variable_names.size() == 1);
+	ROS_ASSERT(variable_names[0] == "torso_lift_joint");
 	moveit::core::VariableBounds joint_bounds = torso_joint->getVariableBounds(variable_names[0]);
 
 	// get torso joint value
@@ -103,7 +126,7 @@ InverseCapabilityDrawing::samplingBoundingBox InverseCapabilityDrawing::computeS
 	return bbox;
 }
 
-InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::sampleTorsoPositions(const InverseCapabilityOcTree* tree,
+InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::sampleTorsoPose(const InverseCapabilityOcTree* tree,
 		const samplingBoundingBox& bbox)
 {
 	double x_range, y_range, z_range;
@@ -130,20 +153,21 @@ InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::sampleTorsoPosit
 	unsigned int index;
 	// generate random number between 0 and size
 	index = rand() % inv_cap.getThetasPercent().size();
-	// copy tethas into vector to access them by operator[]
+	// copy thetas into vector to access them by operator[]
 	std::vector<double> thetas;
 	std::map<double, double>::const_iterator it;
 	for ( it = inv_cap.getThetasPercent().begin(); it != inv_cap.getThetasPercent().end(); it++ )
 	    thetas.push_back(it->first);
 
 	ROS_ASSERT(index < thetas.size());
-	geometry_msgs::Pose pose;
-	pose.position.x = x;
-	pose.position.y = y;
-	pose.position.z = z;
+	geometry_msgs::PoseStamped pose;
+	pose.header.frame_id = "torso_pose_in_surface_frame";
+	pose.pose.position.x = x;
+	pose.pose.position.y = y;
+	pose.pose.position.z = z;
 	tf::Quaternion q;
 	q.setRPY(0, 0, thetas[index]);
-	tf::quaternionTFToMsg(q, pose.orientation);
+	tf::quaternionTFToMsg(q, pose.pose.orientation);
 	double percent = inv_cap.getThetaPercent(thetas[index]);
 
 	posePercent p;
@@ -153,7 +177,82 @@ InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::sampleTorsoPosit
 	return p;
 }
 
+InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::transformPosePercentInMap(
+		const posePercent& torso_pose_in_surface, const geometry_msgs::PoseStamped& surface_pose_in_map)
+{
+	tf::Pose robot_torso_in_surface_frame;
+	tf::poseMsgToTF(torso_pose_in_surface.pose.pose, robot_torso_in_surface_frame);
 
+	tf::Pose surface_pose_in_map_frame;
+	tf::poseMsgToTF(surface_pose_in_map.pose, surface_pose_in_map_frame);
 
+	tf::Pose robot_torso_in_map_frame;
+	robot_torso_in_map_frame = robot_torso_in_surface_frame * surface_pose_in_map_frame;
 
+	posePercent ret;
+	ret.pose.header.frame_id = surface_pose_in_map.header.frame_id;
+	tf::poseTFToMsg(robot_torso_in_map_frame, ret.pose.pose);
+	ret.percent = torso_pose_in_surface.percent;
 
+	return ret;
+}
+
+bool InverseCapabilityDrawing::robotInCollision(planning_scene::PlanningScene& planning_scene,
+		const posePercent& pose, const std::string& base_name, posePercent base_pose)
+{
+	moveit::core::RobotState& new_robot_state = planning_scene.getCurrentStateNonConst();
+
+	// compute new torso height
+	double old_torso_height = getLinkHeight(new_robot_state, base_name);
+	double new_torso_height = pose.pose.pose.position.z;
+	double torso_old_new_offset = new_torso_height - old_torso_height;
+
+	// set new torso height
+	const moveit::core::RobotModelConstPtr robot_model = new_robot_state.getRobotModel();
+	const moveit::core::LinkModel* torso_link = robot_model->getLinkModel(base_name);
+	const moveit::core::JointModel* torso_joint =  torso_link->getParentJointModel();
+	new_robot_state.setVariablePosition(torso_joint->getName(), torso_old_new_offset);
+
+	// look up torso footprint transform (result expected: x = -0.05, y = 0.0, z = dont care, qx, qy, qz = 0, qw = 1)
+	ROS_ASSERT(torso_link->getName() == base_name);
+	const Eigen::Affine3d& torso_transform = new_robot_state.getGlobalLinkTransform(torso_link->getName());
+	const Eigen::Affine3d& base_transform = new_robot_state.getGlobalLinkTransform(torso_link->getParentLinkModel()->getName());
+	// convert eigen into tf
+	tf::Pose torso_trans, base_trans, transform;
+	tf::poseEigenToTF(torso_transform, torso_trans);
+	tf::poseEigenToTF(base_transform, base_trans);
+	transform = torso_trans.inverseTimes(base_trans);
+	ROS_ASSERT(transform.getOrigin().getX() == -0.05);
+	ROS_ASSERT(transform.getOrigin().getY() == 0.0);
+
+	geometry_msgs::Pose2D base;
+	base.x = pose.pose.pose.position.x + transform.getOrigin().getX();
+	base.y = pose.pose.pose.position.y + transform.getOrigin().getY();
+	tf::Quaternion q;
+	tf::quaternionMsgToTF(pose.pose.pose.orientation, q);
+	base.theta = tf::getYaw(q);
+
+	// full collision check, check if robot is in collision with polygon using base_link as reference frame
+	new_robot_state.setVariablePosition("world_joint/x", base.x);
+	new_robot_state.setVariablePosition("world_joint/y", base.y);
+	new_robot_state.setVariablePosition("world_joint/theta", base.theta);
+	planning_scene.setCurrentState(new_robot_state);
+	collision_detection::CollisionRequest collision_request;
+	collision_detection::CollisionResult collision_result;
+	collision_result.clear();
+	planning_scene.checkCollision(collision_request, collision_result, new_robot_state);
+
+	// convert 2D pose into posePercent
+	base_pose = pose;
+	base_pose.pose.pose.position.x = base.x;
+	base_pose.pose.pose.position.y = base.y;
+	tf::Quaternion orientation = tf::createQuaternionFromYaw(base.theta);
+	tf::quaternionTFToMsg(orientation, base_pose.pose.pose.orientation);
+	base_pose.percent = pose.percent;
+
+	bool inCollision = false;
+	if (collision_result.collision)
+		inCollision = true;
+
+	return inCollision;
+}

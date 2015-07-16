@@ -11,6 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs 
   capability_map
   inverse_capability_map_utils
+  symbolic_planning_utils # for testing sample drawing
+  moveit_msgs # for testing sample drawing
+  moveit_core
+  tf_conversions
+  moveit_ros_planning
+  moveit_ros_planning_interface
 )
 find_package(octomap REQUIRED)
 
@@ -105,6 +111,13 @@ include_directories(
 ## Declare a cpp library
 add_library(inverse_capability_octree src/InverseCapabilityOcTreeNode.cpp src/InverseCapabilityOcTree.cpp)
 target_link_libraries(inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(inverse_capability_drawing_main src/InverseCapabilityDrawing.cpp src/InverseCapabilityDrawingMain.cpp)
+target_link_libraries(inverse_capability_drawing_main
+  inverse_capability_octree
+  ${OCTOMAP_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
 
 add_executable(inverse_capability_vis src/InverseCapabilityVis.cpp)
 target_link_libraries(inverse_capability_vis
