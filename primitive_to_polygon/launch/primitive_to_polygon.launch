@@ -1,14 +1,15 @@
 <launch>
     <!-- polygon name -->
-    <arg name="name" value="tablew213h102" />
+    <arg name="name" value="tablew2l2" />
     
     <!-- select primitive -->
     <arg name="rectangle" value="true" />
     <arg name="circle" value="false" />
     
     <!-- rectangle params: width, height -->
-    <arg name="width" value="2.13" />
-    <arg name="height" value="1.02" />
+	<!-- x-value corresponds to width and y-value to height -->
+    <arg name="width" value="2.0" />
+    <arg name="length" value="2.0" />
     
     <!-- circle params: radius, points -->
     <arg name="radius" value="0.75" />
