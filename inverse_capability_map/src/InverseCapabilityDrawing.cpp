@@ -65,7 +65,7 @@ std::pair<double, double> InverseCapabilityDrawing::computeZSamplingRange(const 
 	double table_height = surface_pose.pose.position.z;
 
 	// compute offset between torso height to table height
-	double z_offset = torso_height - table_height;
+	double z_offset = torso_height + table_height;
 	ROS_INFO("InverseCapabilityDrawing::%s: Torso height: %lf, table height: %lf, resulting z-offset: %lf",
 			__func__, torso_height, table_height, z_offset);
 
@@ -213,21 +213,22 @@ bool InverseCapabilityDrawing::robotInCollision(planning_scene::PlanningScene& p
 	const moveit::core::JointModel* torso_joint =  torso_link->getParentJointModel();
 	new_robot_state.setVariablePosition(torso_joint->getName(), torso_old_new_offset);
 
-	// look up torso footprint transform (result expected: x = -0.05, y = 0.0, z = dont care, qx, qy, qz = 0, qw = 1)
+	// look up torso footprint transform (result expected: x = 0.05, y = 0.0, z = dont care, qx, qy, qz = 0, qw = 1)
 	ROS_ASSERT(torso_link->getName() == base_name);
-	const Eigen::Affine3d& torso_transform = new_robot_state.getGlobalLinkTransform(torso_link->getName());
-	const Eigen::Affine3d& base_transform = new_robot_state.getGlobalLinkTransform(torso_link->getParentLinkModel()->getName());
+	const Eigen::Affine3d& torso_trans = new_robot_state.getGlobalLinkTransform(torso_link->getName());
+	const Eigen::Affine3d& base_trans = new_robot_state.getGlobalLinkTransform(torso_link->getParentLinkModel()->getName());
 	// convert eigen into tf
-	tf::Pose torso_trans, base_trans, transform;
-	tf::poseEigenToTF(torso_transform, torso_trans);
-	tf::poseEigenToTF(base_transform, base_trans);
-	transform = torso_trans.inverseTimes(base_trans);
-	ROS_ASSERT(transform.getOrigin().getX() == -0.05);
-	ROS_ASSERT(transform.getOrigin().getY() == 0.0);
+	tf::Pose torso_transform, base_transform, torso_base_transform;
+	tf::poseEigenToTF(torso_trans, torso_transform);
+	tf::poseEigenToTF(base_trans, base_transform);
+	// from torso to base transform
+	torso_base_transform = torso_transform.inverseTimes(base_transform);
+	ROS_ASSERT(torso_base_transform.getOrigin().getX() == 0.05);
+	ROS_ASSERT(torso_base_transform.getOrigin().getY() == 0.0);
 
 	geometry_msgs::Pose2D base;
-	base.x = pose.pose.pose.position.x + transform.getOrigin().getX();
-	base.y = pose.pose.pose.position.y + transform.getOrigin().getY();
+	base.x = pose.pose.pose.position.x + torso_base_transform.getOrigin().getX();
+	base.y = pose.pose.pose.position.y + torso_base_transform.getOrigin().getY();
 	tf::Quaternion q;
 	tf::quaternionMsgToTF(pose.pose.pose.orientation, q);
 	base.theta = tf::getYaw(q);
