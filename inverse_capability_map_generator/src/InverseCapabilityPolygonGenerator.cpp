@@ -46,14 +46,10 @@ Input verifyInput(int argc, const char * const * argv)
     msg = "Filename and path to the polygon file. \nExample: -c mydir/mysubdir/polygon.poly";
     TCLAP::ValueArg<std::string> path_poly_arg("i", "path-polygon", msg, true, "./polygon.poly", "string");
 
-//    msg = "If set, writes a log file containing time required and number of computed capabilities to map_name.cpm.build_log";
-//    TCLAP::SwitchArg log_arg("l", "log", msg, false);
-
     cmd.add(resolution_arg);
     cmd.add(path_object_arg);
     cmd.add(path_name_arg);
     cmd.add(path_poly_arg);
-//    cmd.add(log_arg);
 
     // parse arguments with TCLAP
     try
@@ -73,7 +69,6 @@ Input verifyInput(int argc, const char * const * argv)
     input.path_object = path_object_arg.getValue();
     input.path_name   = path_name_arg.getValue();
     input.path_poly   = path_poly_arg.getValue();
-//    input.loggingEnabled = log_arg.getValue();
 
     // load inverse capability object map
     object_tree = InverseCapabilityOcTree::readFile(input.path_object);
@@ -239,18 +234,19 @@ int main(int argc, char** argv)
 	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(object_tree->getBaseName());
 	tf::Transform t;
 	tf::transformEigenToTF(e, t);
-	ROS_INFO("Torso height: %lf", t.getOrigin().z());
-	pose.position.z = t.getOrigin().z();
+	double torso_height = t.getOrigin().z();
+	ROS_INFO("Torso height: %lf", torso_height);
+	pose.position.z = torso_height;
 	co.mesh_poses.push_back(pose);
 	co.operation = co.ADD;
 	planning_scene.processCollisionObjectMsg(co);
-//	moveit_msgs::ObjectColor oc;
-//	oc.id = co.id;
-//	oc.color.r = 0.67;
-//	oc.color.g = 0.33;
-//	oc.color.b = 0.0;
-//	oc.color.a = 1.0;
-//	planning_scene.setObjectColor(oc.id, oc.color);
+	moveit_msgs::ObjectColor oc;
+	oc.id = co.id;
+	oc.color.r = 0.67;
+	oc.color.g = 0.33;
+	oc.color.b = 0.0;
+	oc.color.a = 1.0;
+	planning_scene.setObjectColor(oc.id, oc.color);
 
 	ros::NodeHandle nh;
 	ros::Publisher pub_ps = nh.advertise<moveit_msgs::PlanningScene>("planning_scene", 1, true);
@@ -266,40 +262,42 @@ int main(int argc, char** argv)
 	q.setRPY(0, 0, 0);
 	tf::quaternionTFToMsg(q, start_pose.pose.orientation);
 
-//bool sent = false;
-	bool print = false;
-	octomap::OcTreeKey key = object_tree->coordToKey(-0.75, -0.15, 0.05);
+	// take care of torso to base transform
+	const moveit::core::RobotModelConstPtr robot_model = robot_state.getRobotModel();
+	const moveit::core::LinkModel* torso_link = robot_model->getLinkModel(object_tree->getBaseName());
+	const Eigen::Affine3d& torso_trans = robot_state.getGlobalLinkTransform(torso_link->getName());
+	const Eigen::Affine3d& base_trans = robot_state.getGlobalLinkTransform(torso_link->getParentLinkModel()->getName());
+	// convert eigen into tf
+	tf::Pose torso_transform, base_transform, torso_base_transform;
+	tf::poseEigenToTF(torso_trans, torso_transform);
+	tf::poseEigenToTF(base_trans, base_transform);
+	// from torso to base transform
+	torso_base_transform = torso_transform.inverseTimes(base_transform);
+	ROS_ASSERT(torso_base_transform.getOrigin().getX() == 0.05);
+	ROS_ASSERT(torso_base_transform.getOrigin().getY() == 0.0);
 
-	octomath::Vector3 v = object_tree->keyToCoord(key);
-	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
-	octomap::OcTreeKey key2 = object_tree->coordToKey(0.04,0,0);
-	v = object_tree->keyToCoord(key2);
-	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
 
-	if (key == key2)
-		ROS_WARN("EQUAL");
-	else
-		ROS_WARN("not equal");
+//	octomap::OcTreeKey key = object_tree->coordToKey(0.95, -0.15, 0.05);
+//	octomath::Vector3 v = object_tree->keyToCoord(key);
+//	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
+//	octomap::OcTreeKey key2 = object_tree->coordToKey(0.04,0,0);
+//	v = object_tree->keyToCoord(key2);
+//	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
+//	if (key == key2)
+//		ROS_WARN("EQUAL");
+//	else
+//		ROS_WARN("not equal");
 
-	double eps = 0.001;
 	geometry_msgs::PoseStamped object_in_map_frame, robot_torso_in_object_frame;
 	for (unsigned int l = 0; l <= length_cells; l++)
-//	for (unsigned int l = 4; l < 5; l++)
     {
 		for (unsigned int w = 0; w <= width_cells; w++)
-//		for (unsigned int w = width_cells; w < width_cells + 1; w++)
-//		for (unsigned int w = 4; w < 5; w++)
     	{
     		// update object_pose
 			object_in_map_frame = start_pose;
 			object_in_map_frame.pose.position.x = start_pose.pose.position.x + w * resolution;
 			object_in_map_frame.pose.position.y = start_pose.pose.position.y + l * resolution;
-//			if (object_in_map_frame.pose.position.x > 0)
-//			{
-//				object_in_map_frame.pose.position.x += resolution;
-//				object_in_map_frame.pose.position.y += resolution;
-//			}
-//			if (object_in_map_frame.pose.position.y > 0)
+
 			// loop through all inverse capabilities
 			for (InverseCapabilityOcTree::leaf_iterator it = object_tree->begin_leafs(); it != object_tree->end_leafs(); ++it)
 			{
@@ -328,21 +326,12 @@ int main(int argc, char** argv)
 				tf::Pose robot_torso_in_map_frame;
 				robot_torso_in_map_frame = robot_torso_in_obj_frame * obj_in_map_frame;
 
-//				tf::Vector3 a = robot_torso_in_map_frame.getOrigin();
-//				a.setX(a.x() + resolution);
-//				a.setY(a.y() + resolution);
-//				robot_torso_in_map_frame.setOrigin(a);
-
 				// check if robot position is inside polygon, meaning invalid position
 				// if return value of pointInPolygon is odd then position is in polygon
 				if (polygon::pointInPolygon(*poly, robot_torso_in_map_frame.getOrigin().x(), robot_torso_in_map_frame.getOrigin().y()) % 2 != 0)
-				{
-					// ROS_INFO("Position: (%lf, %lf) is in Polygon", robot_in_table_frame.getX(), robot_in_table_frame.getY());
 					continue;
-				}
 
 				InverseCapability inv_obj = it->getValue();
-
 
 				if (collision_checking)
 				{
@@ -354,28 +343,18 @@ int main(int argc, char** argv)
 					{
 						// full collision check, check if robot is in collision with polygon using base_link as reference frame
 						// TODO: replace +0.05 with transform. From Torso to Base Link
+//						robot_state.setVariablePosition("world_joint/x", robot_torso_in_map_frame.getOrigin().x() + torso_base_transform.getOrigin().getX());
+//						robot_state.setVariablePosition("world_joint/y", robot_torso_in_map_frame.getOrigin().y() + torso_base_transform.getOrigin().getY());
 						robot_state.setVariablePosition("world_joint/x", robot_torso_in_map_frame.getOrigin().x());
 						robot_state.setVariablePosition("world_joint/y", robot_torso_in_map_frame.getOrigin().y());
 						robot_state.setVariablePosition("world_joint/theta", mit->first);
 						planning_scene.setCurrentState(robot_state);
 
-//						if (key == table_tree.coordToKey(robot_torso_in_map_frame.getOrigin().x(), robot_torso_in_map_frame.getOrigin().y(), 0.05) && it.getZ() == (double)0.05)
-//						{
-//							ROS_INFO("theta size: %lu", thetas.size());
-//							ROS_INFO("mit->first %lf - 1.57 = :%lf",  mit->first, mit->first - 1.57);
-//							if ((mit->first - 1.57) < 0.01 && (mit->first - 1.57) > 0.0)
-//							{
-//								ROS_WARN("INV CAP SIZE: %lu", inv_obj.getThetasPercent().size());
-//								for (std::map<double, double>::const_iterator it = inv_obj.getThetasPercent().begin(); it != inv_obj.getThetasPercent().end(); it++)
-//									ROS_INFO("Theta: %lf, Percent: %lf", it->first, it->second);
-//								ROS_WARN("COORD: x: %lf, y: %lf, z: %lf", robot_torso_in_map_frame.getOrigin().x(), robot_torso_in_map_frame.getOrigin().y(), robot_torso_in_map_frame.getOrigin().z());
-//								ROS_ERROR("l: %d, w: %d, itx: %lf, ity: %lf, itz: %lf\n", l, w, it.getX(), it.getY(), it.getZ());
-//								moveit_msgs::PlanningScene ps_msg;
-//								planning_scene.getPlanningSceneMsg(ps_msg);
-//								pub_ps.publish(ps_msg);
-//								ros::spinOnce();
-//							}
-//						}
+						// adapt height of surface for collision checking
+						co.mesh_poses[0].position.z = torso_height + it.getZ();
+						co.operation = co.MOVE;
+						co.meshes.clear();
+						planning_scene.processCollisionObjectMsg(co);
 
 						collision_result.clear();
 						planning_scene.checkCollision(collision_request, collision_result, robot_state);
@@ -444,6 +423,4 @@ int main(int argc, char** argv)
     {
         ROS_INFO("Inverse Capability map written to file %s", input.path_name.c_str());
     }
-
-    ros::spin();
 }
