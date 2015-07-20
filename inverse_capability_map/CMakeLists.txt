@@ -133,6 +133,13 @@ target_link_libraries(inverse_capability_polygon_vis
   ${catkin_LIBRARIES}
 )
 
+add_executable(inverse_capability_polygon_robot_vis src/InverseCapabilityPolygonRobotVis.cpp)
+target_link_libraries(inverse_capability_polygon_robot_vis
+  inverse_capability_octree
+  ${OCTOMAP_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
 catkin_add_gtest(InverseCapabilityTest src/InverseCapabilityTest.cpp)
 target_link_libraries(InverseCapabilityTest inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
