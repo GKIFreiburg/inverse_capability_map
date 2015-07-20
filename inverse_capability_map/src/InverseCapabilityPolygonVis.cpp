@@ -44,8 +44,8 @@ void showGrid(visualization_msgs::MarkerArray& markerArray, const geometry_msgs:
 	marker.scale.x = 0.02;
 	marker.scale.y = 0.02;
 	marker.scale.z = 0.02;
-	double x = center.x - widthBbox / 2 + resolution / 2;
-	double y = center.y - lengthBbox / 2 + resolution / 2;
+	double x = center.x - widthBbox / 2;
+	double y = center.y - lengthBbox / 2;
 	marker.pose.position.x = x;
 	marker.pose.position.y = y;
 	marker.pose.position.z = 0.02;
