@@ -163,6 +163,8 @@ int main(int argc, char** argv)
 	// normalize nodes
 	for (InverseCapabilityOcTree::leaf_iterator it = combined_tree.begin_leafs(); it != combined_tree.end_leafs(); ++it)
 	{
+		// normalize InverseCapability 2.0, since both arms
+		it->normalize((double) 2.0);
 		// check for max percent
 		const std::pair<double, double> pair = it->getInverseCapability().getMaxThetaPercent();
 		if (max_percent < pair.second)
