@@ -1,6 +1,6 @@
 <launch>
     <!-- polygon name -->
-    <arg name="name" value="tablew2l2" />
+    <arg name="name" value="table1" />
     
     <!-- select primitive -->
     <arg name="rectangle" value="true" />
@@ -8,8 +8,8 @@
     
     <!-- rectangle params: width, height -->
 	<!-- x-value corresponds to width and y-value to height -->
-    <arg name="width" value="2.0" />
-    <arg name="length" value="2.0" />
+    <arg name="width" value="1.4" />
+    <arg name="length" value="0.65" />
     
     <!-- circle params: radius, points -->
     <arg name="radius" value="0.75" />
@@ -17,7 +17,7 @@
             
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 	
-	<arg name="r" value="-r $(arg width) -r $(arg height)" if="$(arg rectangle)" />
+	<arg name="r" value="-r $(arg width) -r $(arg length)" if="$(arg rectangle)" />
 	<arg name="r" value="" unless="$(arg rectangle)" />
 	<arg name="c" value="-c $(arg radius) -c $(arg points)" if="$(arg circle)" />
 	<arg name="c" value="" unless="$(arg circle)" />
