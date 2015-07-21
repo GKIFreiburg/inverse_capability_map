@@ -25,6 +25,8 @@ class InverseCapabilityDrawing
 	posePercent drawBestOfXSamples(planning_scene::PlanningScene& planning_scene,
 			const InverseCapabilityOcTree* tree, const geometry_msgs::PoseStamped& surface_pose, unsigned int numberOfDraws);
 
+	friend std::ostream& operator<<(std::ostream& out, const posePercent& pose);
+
 	protected:
 
 	struct samplingBoundingBox
@@ -59,8 +61,9 @@ class InverseCapabilityDrawing
 	// Output: base pose in 2D
 	// Return true if robot is in collision, else return false
 	bool robotInCollision(planning_scene::PlanningScene& planning_scene,
-			const posePercent& torso_pose_in_map, const std::string& base_name,
-			posePercent base_pose);
+			const posePercent& sampled_pose, const std::string& base_name,
+			posePercent& base_pose);
+
 
 };
 

@@ -41,16 +41,25 @@ int main(int argc, char** argv)
 
 	planning_scene.setPlanningSceneMsg(response.scene);
 
-	// load inverseCapTree
 	// load table locations from file
-	std::string path_name;
-	std::string table_name = "table1";
 	ros::NodeHandle nhPriv("~");
-	if(!nhPriv.getParam(table_name, path_name)) {
+	std::string table_name;
+	if(!nhPriv.getParam("poly_name", table_name)) {
+		ROS_ERROR("Could not find param poly_name in namespace %s", nhPriv.getNamespace().c_str());
+		return 1;
+	}
+
+	std::string path_inv_cap;
+	if(!nhPriv.getParam("path_inv_cap", path_inv_cap)) {
 		ROS_ERROR("Could not find param %s in namespace %s, indicating path to inverse capability map.", table_name.c_str(), nhPriv.getNamespace().c_str());
 		return 1;
 	}
-	InverseCapabilityOcTree* tree = InverseCapabilityOcTree::readFile(path_name);
+
+	int numberOfDraws;
+	nhPriv.param("num_draws", numberOfDraws, 100);
+
+	// load inverseCapTree
+	InverseCapabilityOcTree* tree = InverseCapabilityOcTree::readFile(path_inv_cap);
 
 	// load table pose
 	std::vector<symbolic_planning_utils::LoadTables::TableLocation> tables;
@@ -76,10 +85,38 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	unsigned int numberOfDraws = 100;
-
 	InverseCapabilityDrawing::posePercent sampled_pose = drawing.drawBestOfXSamples(planning_scene, tree, table_pose, numberOfDraws);
 	ROS_INFO_STREAM("Sampled Pose: Percent: " << sampled_pose.percent << "\n" << sampled_pose.pose);
 
-	ros::shutdown();
+
+	moveit::core::RobotState robot_state = planning_scene.getCurrentState();
+	// full collision check, check if robot is in collision with polygon using base_link as reference frame
+	robot_state.setVariablePosition("world_joint/x", sampled_pose.pose.pose.position.x);
+	robot_state.setVariablePosition("world_joint/y", sampled_pose.pose.pose.position.y);
+	tf::Quaternion q;
+	tf::quaternionMsgToTF(sampled_pose.pose.pose.orientation, q);
+	robot_state.setVariablePosition("world_joint/theta", tf::getYaw(q));
+	// set new torso height
+	const moveit::core::RobotModelConstPtr robot_model = robot_state.getRobotModel();
+	const moveit::core::LinkModel* torso_link = robot_model->getLinkModel(tree->getBaseName());
+	const moveit::core::JointModel* torso_joint =  torso_link->getParentJointModel();
+	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(tree->getBaseName());
+	tf::Transform t;
+	tf::transformEigenToTF(e, t);
+	double torso_height = t.getOrigin().getZ();
+
+	double torso_joint_value = robot_state.getVariablePosition(torso_joint->getName());
+	robot_state.setVariablePosition(torso_joint->getName(), torso_joint_value + sampled_pose.pose.pose.position.z - torso_height);
+
+	planning_scene.setCurrentState(robot_state);
+
+	ros::Publisher pub_ps = nh.advertise<moveit_msgs::PlanningScene>("virtual_planning_scene", 1, true);
+	moveit_msgs::PlanningScene ps_msg;
+	planning_scene.getPlanningSceneMsg(ps_msg);
+	pub_ps.publish(ps_msg);
+
+
+
+	ros::spin();
+
 }
