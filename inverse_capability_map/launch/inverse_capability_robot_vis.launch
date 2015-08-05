@@ -1,0 +1,54 @@
+<launch>
+    <!-- select group_name: left_arm or right_arm or combined-->
+    <arg name="group_name" value="right_arm" />
+    
+    <!-- resolution in m (0.1, 0.05, 0.025) -->
+    <arg name="r" value="0.1" />
+    <!-- theta_resolution (unsigned int) -->
+    <arg name="t" value="16" />
+
+	<!-- define end-effector pose in torso_lift_link frame -->
+	<arg name="x-eef" value="0.30" />
+	<arg name="y-eef" value="-0.05" />
+	<arg name="z-eef" value="0.4" />
+	<!-- orientation in roll, pitch, yaw in degrees -->
+	<arg name="roll-eef" value="0.0" />
+	<arg name="pitch-eef" value="0.0" />
+	<arg name="yaw-eef" value="90.0" />
+	
+
+
+
+
+
+<!--	CAN BE IGNORED		-->
+	<arg name="x-robot" value="1.0" />
+	<arg name="y-robot" value="0.3" />
+	<!-- theta index -->
+	<arg name="theta-robot" value="8" />
+	<arg name="z-offset" value="-0.21" />
+<!--	CAN BE IGNORED		-->	
+	
+    
+
+	<!-- DO NOT CHANGE PARAMETERS BELOW -->
+	   
+	<!-- path to inverse capability map -->
+    <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
+	    
+	<include file="$(find tidyup_pr2_moveit_config)/launch/planning_context.launch">
+		<arg name="load_robot_description" value="true"/>
+	</include>
+
+    <node pkg="inverse_capability_map" type="inverse_capability_robot_vis" name="inverse_capability_robot_vis"
+    	args=" -p $(arg path_name)
+    	-x $(arg x-robot) -y $(arg y-robot) -t $(arg theta-robot) -z $(arg z-offset)"
+		output="screen">
+		<param name="position_x" value="$(arg x-eef)" />
+		<param name="position_y" value="$(arg y-eef)" />
+		<param name="position_z" value="$(arg z-eef)" />
+		<param name="orientation_roll" value="$(arg roll-eef)" />
+		<param name="orientation_pitch" value="$(arg pitch-eef)" />
+		<param name="orientation_yaw" value="$(arg yaw-eef)" />
+    </node>
+</launch>

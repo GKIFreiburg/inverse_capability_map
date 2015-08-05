@@ -247,7 +247,8 @@ int main(int argc, char** argv )
 //	tableMarker.type = visualization_msgs::Marker::CUBE;
 	tableMarker.pose.position.x = 0;
 	tableMarker.pose.position.y = 0;
-	tableMarker.pose.position.z = 0.02;
+	tableMarker.pose.position.z = 0;
+//	tableMarker.pose.position.z = 0.02;
 	tableMarker.pose.orientation.x = 0.0;
 	tableMarker.pose.orientation.y = 0.0;
 	tableMarker.pose.orientation.z = 0.0;
@@ -383,7 +384,7 @@ int main(int argc, char** argv )
 
 			marker.type = visualization_msgs::Marker::CUBE;
 
-			marker.pose.position.x = 0.05 * (double)i;
+			marker.pose.position.x = 0.05 * (double)i - 0.5;
 			marker.pose.position.y = maxY + 0.5;
 			marker.pose.position.z = 0.0;
 

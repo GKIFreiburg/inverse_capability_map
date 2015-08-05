@@ -3,7 +3,7 @@
     <arg name="poly_name" value="table1" />
 
     <!-- select group_name: left_arm or right_arm or combined-->
-    <arg name="group_name" value="left_arm" />
+    <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
     <arg name="r" value="0.1" />
@@ -17,14 +17,14 @@
     <arg name="y1" value="-3.0" />
     <arg name="y2" value="3.0" />
     
-    <arg name="z1" value="1.0" />
-    <arg name="z2" value="-1.0" />
+    <arg name="z1" value="0.0" />
+    <arg name="z2" value="0.0" />
     
 	<!-- only showing arrows of torso position with a percentage over min_percent variable -->
-    <arg name="min_percent" value="50" />
+    <arg name="min_percent" value="0" />
     
     <!-- display color table -->
-    <arg name="colortable" value="false" />
+    <arg name="colortable" value="true" />
     <!-- draw arrows in 3d -->
     <arg name="3darrowdimension" value="false" />
     

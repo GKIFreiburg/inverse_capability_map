@@ -10,11 +10,11 @@
     <!-- theta_resolution (unsigned int) -->
     <arg name="t" value="16" />
 
-	<arg name="x-robot" value="1.0" />
-	<arg name="y-robot" value="0.3" />
+	<arg name="x-robot" value="0.0" />
+	<arg name="y-robot" value="-0.45" />
 	<!-- theta index -->
 	<arg name="theta-robot" value="8" />
-	<arg name="z-offset" value="-0.21" />
+	<arg name="z-offset" value="-0.11" />
     
 
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->

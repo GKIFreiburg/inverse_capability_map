@@ -139,6 +139,10 @@ int main(int argc, char** argv)
 	unsigned int count = 0;
 	visualization_msgs::MarkerArray markerArray;
 
+	std::ofstream myfile;
+	myfile.open("/home/luc/example.txt");
+
+
 	// loop through all inverse capabilities
 	for (InverseCapabilityOcTree::leaf_iterator it = tree->begin_leafs(); it != tree->end_leafs(); ++it)
 	{
@@ -217,6 +221,10 @@ int main(int argc, char** argv)
 			// red = high, blue = low
 			// setMarkerColor(&marker, mit->second / 100.0);
 
+			myfile << start.x << "\t" << start.y << "\t" << start.z << "\t" <<
+					end.x << "\t" << end.y << "\t" << end.z << "\t" <<
+					marker.color.r << "\t" << marker.color.g << "\t" << marker.color.b << "\n";
+
 			markerArray.markers.push_back(marker);
 		}
 
@@ -226,6 +234,7 @@ int main(int argc, char** argv)
 			maxY = it.getY();
 		}
 	}
+	myfile.close();
 
 	if (showColorTable)
 	{
@@ -244,7 +253,7 @@ int main(int argc, char** argv)
 
 			marker.type = visualization_msgs::Marker::CUBE;
 
-			marker.pose.position.x = 0.05 * (double)i;
+			marker.pose.position.x = 0.05 * (double)i - 0.5;
 			marker.pose.position.y = maxY + 0.5;
 			marker.pose.position.z = 0.0;
 
@@ -264,6 +273,7 @@ int main(int argc, char** argv)
 	marker_pub.publish(markerArray);
 
     ros::spin();
+//    ros::shutdown();
 
     if (!ros::ok())
     	delete tree;

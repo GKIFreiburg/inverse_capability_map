@@ -9,6 +9,8 @@
 #include <tf/tf.h>
 #include <tf_conversions/tf_eigen.h>
 #include <tf/transform_broadcaster.h>
+#include <eigen_conversions/eigen_msg.h>
+#include <tf/transform_listener.h>
 
 #include <inverse_capability_map_utils/polygon_utils.h>
 #include <shape_msgs/Mesh.h>
@@ -68,7 +70,14 @@ void setArmsToSide(robot_state::RobotState& robot_state)
 
 int main(int argc, char** argv )
 {
-    ros::init(argc, argv, "inverse_capability_polygon_robot_visualization");
+	/* Node create only for taking screenshots.
+	 * Goal is to set the object position in torso lift link frame, robot stays at origin
+	 */
+
+
+
+    ros::init(argc, argv, "inverse_capability_robot_visualization");
+    tf::TransformListener tf_listener;
 
     // arguments
     TCLAP::CmdLine cmd("Visualizes the inverse capability map given by argument", ' ', "1.0");
@@ -76,10 +85,8 @@ int main(int argc, char** argv )
     TCLAP::ValueArg<std::string> path_inv_cap_arg("p", "path", "Path and filename of the inverse capability map to be visualized.\n\
                                              Example: -p mydir/mysubdir/filename.icpm", true, "./inverse_capability_map.icpm", "string");
 
+    // Input is ignored at the moment
     std::string msg;
-    msg = "Filename and path to the polygon file. \nExample: -c mydir/mysubdir/polygon.poly";
-    TCLAP::ValueArg<std::string> path_poly_arg("i", "path-polygon", msg, true, "./polygon.poly", "string");
-
     msg = "Specifies the x position of the Robot.";
     TCLAP::ValueArg<double> x_robo_arg("x", "x-robot", msg, true, 0.0, "floating point");
 
@@ -97,7 +104,6 @@ int main(int argc, char** argv )
     cmd.add(z_offset_arg);
     cmd.add(theta_robo_arg);
     cmd.add(path_inv_cap_arg);
-    cmd.add(path_poly_arg);
 
     // parse arguments with TCLAP
     try
@@ -113,21 +119,10 @@ int main(int argc, char** argv )
 
     std::string pathName = path_inv_cap_arg.getValue();
     InverseCapabilityOcTree* tree = InverseCapabilityOcTree::readFile(pathName);
-    std::string path_poly = path_poly_arg.getValue();
 
     if (tree == NULL)
     {
         ROS_ERROR("Error: Inverse capability map could not be loaded.\n");
-        ros::shutdown();
-        exit(1);
-    }
-
-    // load polygon
-    geometry_msgs::Polygon* poly = NULL;
-    poly = polygon::loadPolygon(path_poly);
-    if (poly == NULL)
-    {
-        ROS_ERROR("Could not load polygon from file %s", path_poly.c_str());
         ros::shutdown();
         exit(1);
     }
@@ -143,11 +138,30 @@ int main(int argc, char** argv )
 	ros::NodeHandle nhPriv("~");
 	double minimum_percent;
 	nhPriv.param("minimum_percent", minimum_percent, 0.0);
-	std::string poly_name;
-	nhPriv.param<std::string>("poly_name", poly_name, "#UNDEFINED");
-	ROS_INFO("Polygon name is: %s\n", poly_name.c_str());
-	bool show_grid;
-	nhPriv.param("show_grid", show_grid, false);
+
+	// Fetching parameters from param server
+	geometry_msgs::PoseStamped end_effector;
+	end_effector.header.stamp = ros::Time(0);
+	if (!nhPriv.hasParam("position_x"))
+	{
+		ROS_ERROR("Could not load end-effector pose from param!");
+		return 1;
+	}
+	nhPriv.param("position_x", end_effector.pose.position.x, -1.0);
+	nhPriv.param("position_y", end_effector.pose.position.y, -1.0);
+	nhPriv.param("position_z", end_effector.pose.position.z, -1.0);
+	double roll, pitch, yaw;
+	nhPriv.param("orientation_roll" , roll, -1.0);
+	nhPriv.param("orientation_pitch", pitch, -1.0);
+	nhPriv.param("orientation_yaw"  , yaw, -1.0);
+	// convert to radians
+	roll = M_PI/180 * roll;
+	pitch = M_PI/180 * pitch;
+	yaw = M_PI/180 * yaw;
+	tf::Quaternion tf_q;
+	tf_q.setRPY(roll, pitch, yaw);
+	tf::quaternionTFToMsg(tf_q, end_effector.pose.orientation);
+	nhPriv.param<std::string>("frame_id", end_effector.header.frame_id, "torso_lift_link");
 
 	double x_robot = x_robo_arg.getValue();
 	double y_robot = y_robo_arg.getValue();
@@ -161,8 +175,7 @@ int main(int argc, char** argv )
 	planning_scene::PlanningScene planning_scene(kinematic_model);
 
 	robot_state::RobotState& robot_state = planning_scene.getCurrentStateNonConst();
-	// set robot state arms at side
-	setArmsToSide(robot_state);
+
 
 //    std::vector<std::string> names = robot_state.getVariableNames();
 //    for (int i = 0; i < names.size(); i++)
@@ -176,14 +189,6 @@ int main(int argc, char** argv )
 
 	// Add polygon to planning scene
 	ROS_INFO("Planning frame: %s", planning_scene.getPlanningFrame().c_str());
-	moveit_msgs::CollisionObject co;
-	co.id = "surface";
-	co.header.frame_id = planning_scene.getPlanningFrame();
-	co.header.stamp = ros::Time::now();
-	shape_msgs::Mesh mesh = polygon::createMeshFromPolygon(*poly, 0.0, 0.03);
-	co.meshes.push_back(mesh);
-	// pose position (0, 0, 0), orientation (0, 0, 0, 1)
-	geometry_msgs::Pose pose = geometry_msgs::Pose();
 	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(tree->getBaseName());
 	tf::Transform t;
 	tf::transformEigenToTF(e, t);
@@ -193,33 +198,21 @@ int main(int argc, char** argv )
 	octomap::OcTreeKey key = tree->coordToKey(x_robot, y_robot, z_offset);
 	octomath::Vector3 v = tree->keyToCoord(key);
 
-	pose.position.z = torso_height + v.z() + tree->getResolution() / 2;
-	co.mesh_poses.push_back(pose);
-	co.operation = co.ADD;
-	planning_scene.processCollisionObjectMsg(co);
-	moveit_msgs::ObjectColor oc;
-	oc.id = co.id;
-	oc.color.r = 0.67;
-	oc.color.g = 0.33;
-	oc.color.b = 0.0;
-	oc.color.a = 1.0;
-	planning_scene.setObjectColor(oc.id, oc.color);
-
 	ros::NodeHandle nh;
 	ros::Publisher pub_ps = nh.advertise<moveit_msgs::PlanningScene>("planning_scene", 1, true);
 	ROS_INFO("Publishing planning scene to: planning_scene");
 
-	InverseCapability inv_cap = tree->getNodeInverseCapability(x_robot, y_robot, z_offset);
-
-	double theta = 2 * M_PI / tree->getThetaResolution() * theta_robot;
-	if (inv_cap.getThetasPercent().find(theta) == inv_cap.getThetasPercent().end())
-	{
-		ROS_ERROR("Could not find theta orientation!");
-		std::map<double, double>::const_iterator it;
-		for (it = inv_cap.getThetasPercent().begin(); it != inv_cap.getThetasPercent().end(); it++)
-			ROS_INFO("Possible theta: %lf", it->first);
-		return 1;
-	}
+//	InverseCapability inv_cap = tree->getNodeInverseCapability(x_robot, y_robot, z_offset);
+//
+//	double theta = 2 * M_PI / tree->getThetaResolution() * theta_robot;
+//	if (inv_cap.getThetasPercent().find(theta) == inv_cap.getThetasPercent().end())
+//	{
+//		ROS_ERROR("Could not find theta orientation!");
+//		std::map<double, double>::const_iterator it;
+//		for (it = inv_cap.getThetasPercent().begin(); it != inv_cap.getThetasPercent().end(); it++)
+//			ROS_INFO("Possible theta: %lf", it->first);
+//		return 1;
+//	}
 
 	// take care of torso to base transform
 	const moveit::core::RobotModelConstPtr robot_model = robot_state.getRobotModel();
@@ -236,9 +229,37 @@ int main(int argc, char** argv )
 	ROS_ASSERT(torso_base_transform.getOrigin().getY() == 0.0);
 
 	// full collision check, check if robot is in collision with polygon using base_link as reference frame
-	robot_state.setVariablePosition("world_joint/x", v.x() + torso_base_transform.getOrigin().getX());
-	robot_state.setVariablePosition("world_joint/y", v.y() + torso_base_transform.getOrigin().getY());
-	robot_state.setVariablePosition("world_joint/theta", theta);
+//	robot_state.setVariablePosition("world_joint/x", v.x() + torso_base_transform.getOrigin().getX());
+//	robot_state.setVariablePosition("world_joint/y", v.y() + torso_base_transform.getOrigin().getY());
+//	robot_state.setVariablePosition("world_joint/theta", theta);
+
+
+
+	robot_state.setToDefaultValues();
+//	const double* a = robot_state.getJointPositions(torso_link->getParentJointModel()->getName());
+//	ROS_WARN("%s: %lf", torso_link->getParentJointModel()->getName().c_str(), *a);
+
+	// set robot state arms at side
+	setArmsToSide(robot_state);
+
+	moveit::core::JointModelGroup* group = kinematic_model->getJointModelGroup(tree->getGroupName());
+
+	ROS_INFO_STREAM(end_effector);
+    geometry_msgs::PoseStamped pose_transformed;
+    try {
+        tf_listener.waitForTransform("/map", end_effector.header.frame_id, ros::Time::now(), ros::Duration(0.5));
+        tf_listener.transformPose("/map", end_effector, pose_transformed);
+    } catch (tf::TransformException& ex) {
+        ROS_ERROR("%s", ex.what());
+        return false;
+    }
+    Eigen::Affine3d eip;
+    tf::poseMsgToEigen(pose_transformed.pose, eip);
+    ROS_WARN_STREAM(pose_transformed);
+
+	bool res = robot_state.setFromIK(group, eip, tree->getTipName(), 10, 0.5);
+	if (!res)
+		ROS_ERROR("Given end-effector pose can not be reached! Verify frame_id");
 
 	planning_scene.setCurrentState(robot_state);
 
@@ -247,7 +268,23 @@ int main(int argc, char** argv )
 	pub_ps.publish(ps_msg);
 
 
-    ros::spin();
+
+	tf::TransformBroadcaster br;
+	tf::Transform transform;
+	// Command creating fixed transform, so that in rviz an axis cross can be displayed at the position of the object
+	// rosrun tf static_transform_publisher 0.30 -0.05 0.4 0 0 0 1 torso_lift_link object 100
+
+	ros::Rate rate(10.0);
+	while (ros::ok()){
+		transform.setOrigin( tf::Vector3(end_effector.pose.position.x, end_effector.pose.position.y, end_effector.pose.position.z) );
+		transform.setRotation( tf::Quaternion(end_effector.pose.orientation.x, end_effector.pose.orientation.y, end_effector.pose.orientation.z, end_effector.pose.orientation.w) );
+		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), end_effector.header.frame_id, "object"));
+		ros::spinOnce();
+		rate.sleep();
+	}
+
+
+//    ros::spin();
 
     if (!ros::ok())
     	delete tree;
