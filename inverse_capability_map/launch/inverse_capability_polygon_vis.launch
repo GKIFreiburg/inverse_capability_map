@@ -3,7 +3,7 @@
     <arg name="poly_name" value="table1" />
 
     <!-- select group_name: left_arm or right_arm or combined-->
-    <arg name="group_name" value="right_arm" />
+    <arg name="group_name" value="combined" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
     <arg name="r" value="0.1" />
@@ -27,6 +27,8 @@
     <arg name="colortable" value="true" />
     <!-- draw arrows in 3d -->
     <arg name="3darrowdimension" value="false" />
+    <!-- arrow shaft diameter (std value: 0.002) -->
+    <arg name="arrow_shaft_diameter" value="0.002" />
     
     <!-- display grid positions -->
     <arg name="show_grid" value="false" /> 
@@ -53,5 +55,6 @@
 		<param name="minimum_percent" type="double" value="$(arg min_percent)" />
 		<param name="poly_name" type="string" value="$(arg poly_name)" />
 		<param name="show_grid" type="bool" value="$(arg show_grid)" />
+		<param name="arrow_shaft_diameter" type="double" value="$(arg arrow_shaft_diameter)" />
     </node>
 </launch>

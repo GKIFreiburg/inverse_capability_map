@@ -87,6 +87,10 @@ int main(int argc, char** argv)
     ROS_INFO("Resolution is: %g", tree->getResolution());
     ROS_INFO("Theta resolution is: %d\n", theta_resolution);
 
+	ros::NodeHandle nhPriv("~");
+	double arrow_shaft_diameter;
+	nhPriv.param("arrow_shaft_diameter", arrow_shaft_diameter, 0.002);
+
     // get x, y and z values and sort them
     std::vector<double> xValues = xArg.getValue();
     std::vector<double> yValues = yArg.getValue();
@@ -139,8 +143,10 @@ int main(int argc, char** argv)
 	unsigned int count = 0;
 	visualization_msgs::MarkerArray markerArray;
 
-	std::ofstream myfile;
-	myfile.open("/home/luc/example.txt");
+	// putting arrow info into file, in order to vectorize graph with matlab
+	// too time consuming
+//	std::ofstream myfile;
+//	myfile.open("/home/luc/example.txt");
 
 
 	// loop through all inverse capabilities
@@ -206,7 +212,7 @@ int main(int argc, char** argv)
 			// scale.x is the shaft diameter,
 			// and scale.y is the head diameter.
 			// If scale.z is not zero, it specifies the head length.
-			marker.scale.x = 0.002;
+			marker.scale.x = arrow_shaft_diameter;
 			double arrow_length = hypot(start.x - end.x, start.y - end.y);
 			marker.scale.y =  (arrow_length / 4) * ( 16 / theta_resolution);
 			marker.scale.z = arrow_length / 2;
@@ -221,9 +227,9 @@ int main(int argc, char** argv)
 			// red = high, blue = low
 			// setMarkerColor(&marker, mit->second / 100.0);
 
-			myfile << start.x << "\t" << start.y << "\t" << start.z << "\t" <<
-					end.x << "\t" << end.y << "\t" << end.z << "\t" <<
-					marker.color.r << "\t" << marker.color.g << "\t" << marker.color.b << "\n";
+//			myfile << start.x << "\t" << start.y << "\t" << start.z << "\t" <<
+//					end.x << "\t" << end.y << "\t" << end.z << "\t" <<
+//					marker.color.r << "\t" << marker.color.g << "\t" << marker.color.b << "\n";
 
 			markerArray.markers.push_back(marker);
 		}
@@ -234,7 +240,7 @@ int main(int argc, char** argv)
 			maxY = it.getY();
 		}
 	}
-	myfile.close();
+//	myfile.close();
 
 	if (showColorTable)
 	{

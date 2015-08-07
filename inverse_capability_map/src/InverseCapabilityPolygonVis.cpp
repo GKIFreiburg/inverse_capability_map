@@ -157,6 +157,8 @@ int main(int argc, char** argv )
 	ROS_INFO("Polygon name is: %s\n", poly_name.c_str());
 	bool show_grid;
 	nhPriv.param("show_grid", show_grid, false);
+	double arrow_shaft_diameter;
+	nhPriv.param("arrow_shaft_diameter", arrow_shaft_diameter, 0.002);
 
     // get x, y and z values and sort them
     std::vector<double> xValues = x_arg.getValue();
@@ -342,7 +344,7 @@ int main(int argc, char** argv )
 			// scale.x is the shaft diameter,
 			// and scale.y is the head diameter.
 			// If scale.z is not zero, it specifies the head length.
-			marker.scale.x = 0.002;
+			marker.scale.x = arrow_shaft_diameter;
 			double arrow_length = hypot(start.x - end.x, start.y - end.y);
 			marker.scale.y =  (arrow_length / 4) * ( 16 / theta_resolution);
 			marker.scale.z = arrow_length / 2;

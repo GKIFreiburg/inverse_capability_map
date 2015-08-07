@@ -21,6 +21,8 @@
     <arg name="colortable" value="true" />
     <!-- draw arrows in 3d -->
     <arg name="3darrowdimension" value="true" />
+    <!-- arrow shaft diameter (std value: 0.002) -->
+    <arg name="arrow_shaft_diameter" value="0.002" />
     
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 	   
@@ -38,5 +40,6 @@
     	$(arg d)
     	-x $(arg x1) -x $(arg x2) -y $(arg y1) -y $(arg y2) -z $(arg z1) -z $(arg z2)"
 		output="screen">
+		<param name="arrow_shaft_diameter" type="double" value="$(arg arrow_shaft_diameter)" />
     </node>
 </launch>
