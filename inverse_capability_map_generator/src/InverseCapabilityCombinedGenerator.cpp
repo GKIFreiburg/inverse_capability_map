@@ -152,8 +152,8 @@ int main(int argc, char** argv)
 		// look in inverse capability in map2
 		InverseCapability inv_map2 = map2->getNodeInverseCapability(it.getX(), it.getY(), it.getZ());
 
-		// Compute new inverse capability by adding inv caps of map 1 and map 2
-		InverseCapability new_inv_cap = inv_map1 + inv_map2;
+		// Compute new inverse capability by joining inv caps, take always highest percentage of both
+		InverseCapability new_inv_cap = inv_map1 & inv_map2;
 
 		combined_tree.setNodeInverseCapability(it.getX(), it.getY(), it.getZ(), new_inv_cap);
 	}
@@ -163,8 +163,8 @@ int main(int argc, char** argv)
 	// normalize nodes
 	for (InverseCapabilityOcTree::leaf_iterator it = combined_tree.begin_leafs(); it != combined_tree.end_leafs(); ++it)
 	{
-		// normalize InverseCapability 2.0, since both arms
-		it->normalize((double) 2.0);
+		// no normalization is done!
+		//it->normalize((double) 2.0);
 		// check for max percent
 		const std::pair<double, double> pair = it->getInverseCapability().getMaxThetaPercent();
 		if (max_percent < pair.second)
