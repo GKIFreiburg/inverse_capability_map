@@ -74,6 +74,44 @@ InverseCapability InverseCapability::operator+(const InverseCapability &other) c
 	return result;
 }
 
+InverseCapability InverseCapability::operator&(const InverseCapability &other) const
+{
+	InverseCapability result, copy_other;
+	copy_other = other;
+	std::map<double, double>::const_iterator it;
+	std::map<double, double>::iterator other_it;
+	for (it = this->thetas_.begin(); it != this->thetas_.end(); it++)
+	{
+		other_it = copy_other.thetas_.find(it->first);
+		// key not found in other, store in result inverse capability
+		if (other_it == copy_other.thetas_.end())
+			result.setThetaPercent(*it);
+		else
+		{
+			// if match found in other, take highest percentage of both and store in result
+			// further, remove match from other, since its match was treated
+			ROS_ASSERT(it->first == other_it->first);
+			double percent;
+			if (it->second < other_it->second)
+				percent = other_it->second;
+			else
+				percent = it->second;
+			result.setThetaPercent(std::make_pair(it->first, percent));
+			copy_other.thetas_.erase(other_it);
+		}
+	}
+
+	// add (theta, percent) pairs from other which don't have a match
+	for (it = copy_other.thetas_.begin(); it != copy_other.thetas_.end(); it++)
+	{
+		result.setThetaPercent(*it);
+	}
+
+	ROS_ASSERT(result.thetas_.size() <= this->thetas_.size() + other.thetas_.size());
+
+	return result;
+}
+
 void InverseCapability::normalize(const double& value)
 {
 	std::map<double, double>::iterator it;
