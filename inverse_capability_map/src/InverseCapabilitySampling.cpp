@@ -1,14 +1,37 @@
 #include "inverse_capability_map/InverseCapabilitySampling.h"
 #include <tf_conversions/tf_eigen.h>
+#include <nav_msgs/GetMap.h>
 
 InverseCapabilitySampling* InverseCapabilitySampling::instance = NULL;
 
-InverseCapabilitySampling::InverseCapabilitySampling(long int seed)
+InverseCapabilitySampling::InverseCapabilitySampling(long int seed) :
+		check_robot_in_map_(false)
 {
     if(seed == 0)
         srand48(time(NULL));
     else
         srand48(seed);
+
+    // Fetch 2d map
+	ros::NodeHandle nh;
+	ros::ServiceClient get_map_client = nh.serviceClient<nav_msgs::GetMap>("/static_map", false);
+	if (!get_map_client.exists())
+	{
+		ROS_ERROR("InverseCapabilitySampling::%s: Could not subscribe to service: %s",
+				__func__, get_map_client.getService().c_str());
+		check_robot_in_map_ = false;
+	}
+
+	nav_msgs::GetMap srv;
+	if (!get_map_client.call(srv))
+	{
+		ROS_ERROR("InverseCapabilitySampling::%s: %s request failed.",
+				__func__, get_map_client.getService().c_str());
+		check_robot_in_map_ = false;
+	}
+
+	check_robot_in_map_ = true;
+	map_ = srv.response.map;
 }
 
 InverseCapabilitySampling::~InverseCapabilitySampling()
@@ -19,17 +42,19 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
 			unsigned int numberOfDraws,
+			bool verbose,
 			long int seed)
 {
 	if (instance == NULL)
 		instance = new InverseCapabilitySampling(seed);
-	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws);
+	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws, verbose);
 }
 
 InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSamples_(planning_scene::PlanningScenePtr& planning_scene,
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
-			unsigned int numberOfDraws)
+			unsigned int numberOfDraws,
+			bool verbose)
 {
 	unsigned int i = 0;
 	PosePercent result;
@@ -40,7 +65,8 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 	ROS_DEBUG("z_range: %lf, %lf", z_range.first, z_range.second);
 
 	SamplingBoundingBox bbox = instance->computeSamplingBoundingBox(tree, z_range);
-	ROS_INFO("Sampling Box: \n"
+	if (verbose)
+		ROS_INFO("Sampling Box: \n"
 			"x: [%lf, %lf]\n"
 			"y: [%lf, %lf]\n"
 			"z: [%lf, %lf]", bbox.x_min, bbox.x_max, bbox.y_min, bbox.y_max, bbox.z_min, bbox.z_max);
@@ -57,15 +83,36 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 //		ROS_INFO_STREAM(torso_pose_in_map_frame);
 
 		PosePercent base_pose;
-		if (!instance->robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
+		// if true, robot is in collision and skip that pose
+		if (instance->robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
+			continue;
+
+		// if no 2d cost map can be loaded, skip this check
+		if (check_robot_in_map_)
 		{
-			if (base_pose.percent > result.percent)
-				result = base_pose;
-			i++;
+			// if true, robot pose is outside = an invalid pose
+			if (instance->robotOutsideMap(base_pose))
+				continue;
 		}
+
+		// pose is fine, check for better pose and increase number of valid poses
+		if (base_pose.percent > result.percent)
+			result = base_pose;
+		i++;
+
+//		PosePercent base_pose;
+//		if (!instance->robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
+//		{
+//			if (base_pose.percent > result.percent)
+//				result = base_pose;
+//			i++;
+//		}
 	}
-//	ROS_INFO_STREAM("Sampled Pose: Percent: " << result.percent << "\n" << result.pose);
-	ROS_WARN("Total number of draws: %d", count_draws);
+
+
+
+	if (verbose)
+		ROS_INFO("Total number of draws: %d", count_draws);
 
 	return result;
 }
@@ -94,7 +141,7 @@ std::pair<double, double> InverseCapabilitySampling::computeZSamplingRange(const
 
 	// compute offset between torso height to table height
 	double z_offset = torso_height - table_height;
-	ROS_INFO("InverseCapabilitySampling::%s: Torso height: %lf, table height: %lf, resulting z-offset: %lf",
+	ROS_DEBUG("InverseCapabilitySampling::%s: Torso height: %lf, table height: %lf, resulting z-offset: %lf",
 			__func__, torso_height, table_height, z_offset);
 
 	const moveit::core::RobotModelConstPtr robot_model = robot_state.getRobotModel();
@@ -250,7 +297,7 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 	double torso_joint_value = new_robot_state.getVariablePosition(torso_joint->getName());
 	new_robot_state.setVariablePosition(torso_joint->getName(), torso_joint_value + torso_old_new_offset);
 
-	// look up torso footprint transform (result expected: x = 0.05, y = 0.0, z = dont care, qx, qy, qz = 0, qw = 1)
+	// look up torso base_link transform
 	ROS_ASSERT(torso_link->getName() == base_name);
 	const Eigen::Affine3d& torso_trans = new_robot_state.getGlobalLinkTransform(torso_link->getName());
 	const Eigen::Affine3d& base_trans = new_robot_state.getGlobalLinkTransform(torso_link->getParentLinkModel()->getName());
@@ -259,15 +306,27 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 	tf::poseEigenToTF(torso_trans, torso_transform);
 	tf::poseEigenToTF(base_trans, base_transform);
 	// from torso to base transform
+	// (result expected: x = 0.05, y = 0.0, z = dont care, qx, qy, qz = 0, qw = 1)
 	torso_base_transform = torso_transform.inverseTimes(base_transform);
-//	ROS_INFO("torso base transform: x: %lf, y: %lf", torso_base_transform.getOrigin().getX(), torso_base_transform.getOrigin().getY());
-	// FIXME: even if assertions are equal they return unequal
-//	ROS_ASSERT(torso_base_transform.getOrigin().getX() == 0.05);
-//	ROS_ASSERT(torso_base_transform.getOrigin().getY() == 0.0);
+
+	tf::Pose map_torso_pose, map_base_transform;
+	// convert sampled pose (from map to torso)
+	tf::poseMsgToTF(sampled_pose.pose.pose, map_torso_pose);
+
+	// for matrix multiplication (from right to left)
+	// from map_torso to torso_base => from map to base
+	map_base_transform = torso_base_transform * map_torso_pose;
+
+	geometry_msgs::Pose map_base_pose;
+	tf::poseTFToMsg(map_base_transform, map_base_pose);
 
 	geometry_msgs::Pose2D base;
-	base.x = sampled_pose.pose.pose.position.x + torso_base_transform.getOrigin().getX();
-	base.y = sampled_pose.pose.pose.position.y + torso_base_transform.getOrigin().getY();
+	// old code: transform added by hand
+	//	base.x = sampled_pose.pose.pose.position.x + torso_base_transform.getOrigin().getX();
+	//	base.y = sampled_pose.pose.pose.position.y + torso_base_transform.getOrigin().getY();
+	base.x = map_base_pose.position.x;
+	base.y = map_base_pose.position.y;
+
 //	ROS_WARN("sampled pose: [%lf, %lf], base pose: [%lf, %lf]", sampled_pose.pose.pose.position.x, sampled_pose.pose.pose.position.y, base.x, base.y);
 	tf::Quaternion q;
 	tf::quaternionMsgToTF(sampled_pose.pose.pose.orientation, q);
@@ -300,6 +359,31 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 //	ROS_INFO_STREAM(base_pose);
 
 	return inCollision;
+}
+
+bool InverseCapabilitySampling::robotOutsideMap(const PosePercent& base_pose)
+{
+	// Init cost map
+	costmap_2d::Costmap2D cost_map(map_.info.width, map_.info.height, map_.info.resolution,
+			map_.info.origin.position.x, map_.info.origin.position.y);
+
+	// map coordinates
+	unsigned int mx, my;
+
+	// Convert from world coordinates to map coordinates
+    if (!cost_map.worldToMap(base_pose.pose.pose.position.x, base_pose.pose.pose.position.y, mx, my))
+    	return true;
+
+    // compute index
+    unsigned int index = cost_map.getIndex(mx, my);
+
+    uint8_t value = map_.data[index];
+
+    // check if sample is on an free spot
+    if (value == costmap_2d::FREE_SPACE)
+    	return false;
+
+	return true;
 }
 
 std::ostream& operator<<(std::ostream& out, const InverseCapabilitySampling::PosePercent& pose)

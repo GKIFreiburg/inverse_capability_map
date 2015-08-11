@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   moveit_ros_planning
   moveit_ros_planning_interface
+  nav_msgs
+  costmap_2d
 )
 find_package(octomap REQUIRED)
 
@@ -116,6 +118,7 @@ target_link_libraries(inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LI
 add_library(inverse_capability_sampling
 	src/InverseCapabilitySampling.cpp
 )
+target_link_libraries(inverse_capability_sampling ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(inverse_capability_sampling_main
 	src/InverseCapabilitySamplingMain.cpp

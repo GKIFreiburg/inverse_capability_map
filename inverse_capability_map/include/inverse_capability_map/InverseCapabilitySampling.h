@@ -4,6 +4,9 @@
 #include "inverse_capability_map/InverseCapabilityOcTree.h"
 #include <ros/ros.h>
 #include <geometry_msgs/Pose2D.h>
+#include <nav_msgs/OccupancyGrid.h>
+#include <costmap_2d/costmap_2d.h>
+#include <costmap_2d/cost_values.h>
 
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
@@ -26,6 +29,7 @@ class InverseCapabilitySampling
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
 			unsigned int numberOfDraws,
+			bool verbose = false,
 			long int seed = 0);
 
 	friend std::ostream& operator<<(std::ostream& out, const PosePercent& pose);
@@ -40,7 +44,8 @@ class InverseCapabilitySampling
 	PosePercent drawBestOfXSamples_(planning_scene::PlanningScenePtr& planning_scene,
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
-			unsigned int numberOfDraws);
+			unsigned int numberOfDraws,
+			bool );
 
 	double getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name);
 
@@ -65,13 +70,20 @@ class InverseCapabilitySampling
 
 	// First set robot state before performing collision checks
 	// Input: planning_scene, torso pose in map frame and torso link name
-	// Output: base pose in 2D
+	// Output: base pose with percentage
 	// Return true if robot is in collision, else return false
 	bool robotInCollision(planning_scene::PlanningScenePtr& planning_scene,
 			const PosePercent& sampled_pose, const std::string& base_name,
 			PosePercent& base_pose);
 
+	// Check if robot pose is outside map, then return true
+	// Input: 2d map and the pose
+	bool robotOutsideMap(const PosePercent& base_pose);
+
 	static InverseCapabilitySampling* instance;
+
+	nav_msgs::OccupancyGrid map_;
+	bool check_robot_in_map_;
 
 
 };
