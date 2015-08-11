@@ -36,8 +36,11 @@ class InverseCapability
 //    FRIEND_TEST(Capability, equalityOperators);
     bool operator==(const InverseCapability &other) const;
     bool operator!=(const InverseCapability &other) const;
-    // add to inverseCapabilities
+    // add other to inverseCapabilities
     InverseCapability operator+(const InverseCapability &other) const;
+
+    // join inverseCapability, only take highest reachability of both
+    InverseCapability operator&(const InverseCapability &other) const;
 
     void normalize(const double& value);
 

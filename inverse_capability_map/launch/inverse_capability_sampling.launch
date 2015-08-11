@@ -1,3 +1,5 @@
+<!-- In order to start the inverse capapbility sampling you need to start
+entire planner -->
 <launch>
     <!-- name of polygon without ending -->
     <arg name="poly_name" value="table1" />
@@ -13,9 +15,10 @@
     <!-- Number of draws -->
     <arg name="num_draws" value="20" />
 
-    <node pkg="inverse_capability_map" type="inverse_capability_drawing_main" name="inverse_capability_drawing_main" output="screen">
+    <node pkg="inverse_capability_map" type="inverse_capability_sampling_main" name="inverse_capability_sampling_main" output="screen">
 		<param name="path_inv_cap" type="string" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
 		<param name="poly_name" type="string" value="$(arg poly_name)" />
 		<param name="num_draws" type="int" value="$(arg num_draws)" />
     </node>
+
 </launch>

@@ -1,7 +1,9 @@
-#include "inverse_capability_map/InverseCapabilityDrawing.h"
+#include "inverse_capability_map/InverseCapabilitySampling.h"
 #include <tf_conversions/tf_eigen.h>
 
-InverseCapabilityDrawing::InverseCapabilityDrawing(long int seed)
+InverseCapabilitySampling* InverseCapabilitySampling::instance = NULL;
+
+InverseCapabilitySampling::InverseCapabilitySampling(long int seed)
 {
     if(seed == 0)
         srand48(time(NULL));
@@ -9,40 +11,53 @@ InverseCapabilityDrawing::InverseCapabilityDrawing(long int seed)
         srand48(seed);
 }
 
-InverseCapabilityDrawing::~InverseCapabilityDrawing()
+InverseCapabilitySampling::~InverseCapabilitySampling()
 {
 }
 
-InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::drawBestOfXSamples(planning_scene::PlanningScene& planning_scene,
-			const InverseCapabilityOcTree* tree, const geometry_msgs::PoseStamped& surface_pose, unsigned int numberOfDraws)
+InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSamples(planning_scene::PlanningScenePtr& planning_scene,
+			const InverseCapabilityOcTree* tree,
+			const geometry_msgs::PoseStamped& surface_pose,
+			unsigned int numberOfDraws,
+			long int seed)
+{
+	if (instance == NULL)
+		instance = new InverseCapabilitySampling(seed);
+	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws);
+}
+
+InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSamples_(planning_scene::PlanningScenePtr& planning_scene,
+			const InverseCapabilityOcTree* tree,
+			const geometry_msgs::PoseStamped& surface_pose,
+			unsigned int numberOfDraws)
 {
 	unsigned int i = 0;
-	posePercent result;
+	PosePercent result;
 	result.percent = 0;
-	moveit::core::RobotState& robot_state = planning_scene.getCurrentStateNonConst();
+	moveit::core::RobotState& robot_state = planning_scene->getCurrentStateNonConst();
 
-	std::pair<double, double> z_range = computeZSamplingRange(robot_state, tree, surface_pose);
+	std::pair<double, double> z_range = instance->computeZSamplingRange(robot_state, tree, surface_pose);
 	ROS_DEBUG("z_range: %lf, %lf", z_range.first, z_range.second);
 
-	samplingBoundingBox bbox = computeSamplingBoundingBox(tree, z_range);
+	SamplingBoundingBox bbox = instance->computeSamplingBoundingBox(tree, z_range);
 	ROS_INFO("Sampling Box: \n"
 			"x: [%lf, %lf]\n"
 			"y: [%lf, %lf]\n"
 			"z: [%lf, %lf]", bbox.x_min, bbox.x_max, bbox.y_min, bbox.y_max, bbox.z_min, bbox.z_max);
 
-	int debug_count = 0;
+	int count_draws = 0;
 	while (i < numberOfDraws)
 	{
-		debug_count++;
+		count_draws++;
 
-		posePercent torso_pose_in_surface_frame = sampleTorsoPose(tree, bbox);
+		PosePercent torso_pose_in_surface_frame = instance->sampleTorsoPose(tree, bbox);
 //		ROS_INFO_STREAM(torso_pose_in_surface_frame);
 
-		posePercent torso_pose_in_map_frame = transformPosePercentInMap(torso_pose_in_surface_frame, surface_pose);
+		PosePercent torso_pose_in_map_frame = instance->transformPosePercentInMap(torso_pose_in_surface_frame, surface_pose);
 //		ROS_INFO_STREAM(torso_pose_in_map_frame);
 
-		posePercent base_pose;
-		if (!robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
+		PosePercent base_pose;
+		if (!instance->robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
 		{
 			if (base_pose.percent > result.percent)
 				result = base_pose;
@@ -50,12 +65,12 @@ InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::drawBestOfXSampl
 		}
 	}
 //	ROS_INFO_STREAM("Sampled Pose: Percent: " << result.percent << "\n" << result.pose);
-	ROS_WARN("Debug count: %d", debug_count);
+	ROS_WARN("Total number of draws: %d", count_draws);
 
 	return result;
 }
 
-double InverseCapabilityDrawing::getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name)
+double InverseCapabilitySampling::getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name)
 {
 	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(link_name);
 	tf::Transform t;
@@ -64,7 +79,7 @@ double InverseCapabilityDrawing::getLinkHeight(const moveit::core::RobotState& r
 }
 
 
-std::pair<double, double> InverseCapabilityDrawing::computeZSamplingRange(const moveit::core::RobotState& robot_state,
+std::pair<double, double> InverseCapabilitySampling::computeZSamplingRange(const moveit::core::RobotState& robot_state,
 		const InverseCapabilityOcTree* tree,
 		const geometry_msgs::PoseStamped& surface_pose)
 {
@@ -79,7 +94,7 @@ std::pair<double, double> InverseCapabilityDrawing::computeZSamplingRange(const 
 
 	// compute offset between torso height to table height
 	double z_offset = torso_height - table_height;
-	ROS_INFO("InverseCapabilityDrawing::%s: Torso height: %lf, table height: %lf, resulting z-offset: %lf",
+	ROS_INFO("InverseCapabilitySampling::%s: Torso height: %lf, table height: %lf, resulting z-offset: %lf",
 			__func__, torso_height, table_height, z_offset);
 
 	const moveit::core::RobotModelConstPtr robot_model = robot_state.getRobotModel();
@@ -108,10 +123,10 @@ std::pair<double, double> InverseCapabilityDrawing::computeZSamplingRange(const 
 	return range;
 }
 
-InverseCapabilityDrawing::samplingBoundingBox InverseCapabilityDrawing::computeSamplingBoundingBox(const InverseCapabilityOcTree* tree,
+InverseCapabilitySampling::SamplingBoundingBox InverseCapabilitySampling::computeSamplingBoundingBox(const InverseCapabilityOcTree* tree,
 		const std::pair<double, double>& z_range)
 {
-	samplingBoundingBox bbox;
+	SamplingBoundingBox bbox;
 	double x_min, x_max, y_min, y_max;
 	x_min = HUGE_VAL;
 	x_max = -HUGE_VAL;
@@ -140,8 +155,8 @@ InverseCapabilityDrawing::samplingBoundingBox InverseCapabilityDrawing::computeS
 	return bbox;
 }
 
-InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::sampleTorsoPose(const InverseCapabilityOcTree* tree,
-		const samplingBoundingBox& bbox)
+InverseCapabilitySampling::PosePercent InverseCapabilitySampling::sampleTorsoPose(const InverseCapabilityOcTree* tree,
+		const SamplingBoundingBox& bbox)
 {
 	double x_range, y_range, z_range;
 	x_range = bbox.x_max - bbox.x_min;
@@ -188,15 +203,15 @@ InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::sampleTorsoPose(
 	tf::quaternionTFToMsg(q, pose.pose.orientation);
 	double percent = inv_cap.getThetaPercent(thetas[index]);
 
-	posePercent p;
+	PosePercent p;
 	p.pose = pose;
 	p.percent = percent;
 
 	return p;
 }
 
-InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::transformPosePercentInMap(
-		const posePercent& torso_pose_in_surface, const geometry_msgs::PoseStamped& surface_pose_in_map)
+InverseCapabilitySampling::PosePercent InverseCapabilitySampling::transformPosePercentInMap(
+		const PosePercent& torso_pose_in_surface, const geometry_msgs::PoseStamped& surface_pose_in_map)
 {
 	tf::Pose robot_torso_in_surface_frame;
 	tf::poseMsgToTF(torso_pose_in_surface.pose.pose, robot_torso_in_surface_frame);
@@ -209,7 +224,7 @@ InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::transformPosePer
 	// from: robot_torso_in_surface_frame to surface_pose_in_map_frame || read from right to left
 	robot_torso_in_map_frame = surface_pose_in_map_frame * robot_torso_in_surface_frame;
 
-	posePercent ret;
+	PosePercent ret;
 	ret.pose.header.frame_id = surface_pose_in_map.header.frame_id;
 	tf::poseTFToMsg(robot_torso_in_map_frame, ret.pose.pose);
 	ret.percent = torso_pose_in_surface.percent;
@@ -217,10 +232,10 @@ InverseCapabilityDrawing::posePercent InverseCapabilityDrawing::transformPosePer
 	return ret;
 }
 
-bool InverseCapabilityDrawing::robotInCollision(planning_scene::PlanningScene& planning_scene,
-		const posePercent& sampled_pose, const std::string& base_name, posePercent& base_pose)
+bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePtr& planning_scene,
+		const PosePercent& sampled_pose, const std::string& base_name, PosePercent& base_pose)
 {
-	moveit::core::RobotState new_robot_state = planning_scene.getCurrentStateNonConst();
+	moveit::core::RobotState new_robot_state = planning_scene->getCurrentStateNonConst();
 
 	// compute new torso height
 	double old_torso_height = getLinkHeight(new_robot_state, base_name);
@@ -266,9 +281,9 @@ bool InverseCapabilityDrawing::robotInCollision(planning_scene::PlanningScene& p
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
 	collision_result.clear();
-	planning_scene.checkCollision(collision_request, collision_result, new_robot_state);
+	planning_scene->checkCollision(collision_request, collision_result, new_robot_state);
 
-	// convert 2D pose into posePercent
+	// convert 2D pose into PosePercent
 	base_pose = sampled_pose;
 	base_pose.pose.pose.position.x = base.x;
 	base_pose.pose.pose.position.y = base.y;
@@ -287,7 +302,7 @@ bool InverseCapabilityDrawing::robotInCollision(planning_scene::PlanningScene& p
 	return inCollision;
 }
 
-std::ostream& operator<<(std::ostream& out, const InverseCapabilityDrawing::posePercent& pose)
+std::ostream& operator<<(std::ostream& out, const InverseCapabilitySampling::PosePercent& pose)
 {
 	return out << "Percent: " << pose.percent << "\n" << pose.pose;
 }

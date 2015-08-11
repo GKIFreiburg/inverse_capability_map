@@ -91,7 +91,7 @@ find_package(octomap REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES inverse_capability_octree
+  LIBRARIES inverse_capability_octree inverse_capability_sampling
   CATKIN_DEPENDS geometry_msgs roscpp std_msgs visualization_msgs
   DEPENDS octomap
 )
@@ -112,9 +112,18 @@ include_directories(
 add_library(inverse_capability_octree src/InverseCapabilityOcTreeNode.cpp src/InverseCapabilityOcTree.cpp)
 target_link_libraries(inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(inverse_capability_drawing_main src/InverseCapabilityDrawing.cpp src/InverseCapabilityDrawingMain.cpp)
-target_link_libraries(inverse_capability_drawing_main
+
+add_library(inverse_capability_sampling
+	src/InverseCapabilitySampling.cpp
+)
+
+add_executable(inverse_capability_sampling_main
+	src/InverseCapabilitySamplingMain.cpp
+)
+
+target_link_libraries(inverse_capability_sampling_main
   inverse_capability_octree
+  inverse_capability_sampling
   ${OCTOMAP_LIBRARIES}
   ${catkin_LIBRARIES}
 )

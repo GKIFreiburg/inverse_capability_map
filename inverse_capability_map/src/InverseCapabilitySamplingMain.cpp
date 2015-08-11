@@ -1,23 +1,26 @@
-#include "inverse_capability_map/InverseCapabilityDrawing.h"
+#include "inverse_capability_map/InverseCapabilitySampling.h"
 #include <tf_conversions/tf_eigen.h>
 
 #include <symbolic_planning_utils/load_tables.h>
 #include <moveit_msgs/GetPlanningScene.h>
 
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "inverse_capability_drawing");
-
-    InverseCapabilityDrawing drawing;
+    ros::init(argc, argv, "inverse_capability_sampling");
 
 	ros::NodeHandle nh;
 	ros::ServiceClient srvPlanningScene;
 	srvPlanningScene = nh.serviceClient<moveit_msgs::GetPlanningScene>("get_planning_scene");
 
 	// Set up planning scene
-	robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-	robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
-	planning_scene::PlanningScene planning_scene(kinematic_model);
+	planning_scene_monitor::PlanningSceneMonitorPtr psm(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
+	planning_scene::PlanningScenePtr planning_scene = psm->getPlanningScene();
+
+//	robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+//	robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
+//	planning_scene::PlanningScene planning_scene(kinematic_model);
 
     ROS_INFO("Waiting for %s service.", "get_planning_scene");
     srvPlanningScene.waitForExistence();
@@ -39,7 +42,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-	planning_scene.setPlanningSceneMsg(response.scene);
+	planning_scene->setPlanningSceneMsg(response.scene);
 
 	// load table locations from file
 	ros::NodeHandle nhPriv("~");
@@ -85,11 +88,11 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	InverseCapabilityDrawing::posePercent sampled_pose = drawing.drawBestOfXSamples(planning_scene, tree, table_pose, numberOfDraws);
+	InverseCapabilitySampling::PosePercent sampled_pose = InverseCapabilitySampling::drawBestOfXSamples(planning_scene, tree, table_pose, numberOfDraws);
 	ROS_INFO_STREAM("Sampled Pose: Percent: " << sampled_pose.percent << "\n" << sampled_pose.pose);
 
 
-	moveit::core::RobotState robot_state = planning_scene.getCurrentState();
+	moveit::core::RobotState robot_state = planning_scene->getCurrentState();
 	// full collision check, check if robot is in collision with polygon using base_link as reference frame
 	robot_state.setVariablePosition("world_joint/x", sampled_pose.pose.pose.position.x);
 	robot_state.setVariablePosition("world_joint/y", sampled_pose.pose.pose.position.y);
@@ -108,14 +111,12 @@ int main(int argc, char** argv)
 	double torso_joint_value = robot_state.getVariablePosition(torso_joint->getName());
 	robot_state.setVariablePosition(torso_joint->getName(), torso_joint_value + sampled_pose.pose.pose.position.z - torso_height);
 
-	planning_scene.setCurrentState(robot_state);
+	planning_scene->setCurrentState(robot_state);
 
 	ros::Publisher pub_ps = nh.advertise<moveit_msgs::PlanningScene>("virtual_planning_scene", 1, true);
 	moveit_msgs::PlanningScene ps_msg;
-	planning_scene.getPlanningSceneMsg(ps_msg);
+	planning_scene->getPlanningSceneMsg(ps_msg);
 	pub_ps.publish(ps_msg);
-
-
 
 	ros::spin();
 
