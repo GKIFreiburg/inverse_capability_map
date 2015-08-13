@@ -70,7 +70,8 @@ class InverseCapabilitySampling
 
 	// First set robot state before performing collision checks
 	// Input: planning_scene, torso pose in map frame and torso link name
-	// Output: base pose with percentage
+	// Output: base pose with percentage and convert sampled pose to base frame!
+	// returned base_pose is in base_link frame
 	// Return true if robot is in collision, else return false
 	bool robotInCollision(planning_scene::PlanningScenePtr& planning_scene,
 			const PosePercent& sampled_pose, const std::string& base_name,
@@ -82,6 +83,7 @@ class InverseCapabilitySampling
 
 	static InverseCapabilitySampling* instance;
 
+	// needed by 2d map check (robotOutsideMap)
 	nav_msgs::OccupancyGrid map_;
 	bool check_robot_in_map_;
 

@@ -71,19 +71,28 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			"y: [%lf, %lf]\n"
 			"z: [%lf, %lf]", bbox.x_min, bbox.x_max, bbox.y_min, bbox.y_max, bbox.z_min, bbox.z_max);
 
+	// check if we have an octomap, otherwise print error msgs because collision checks make no sense!
+	moveit_msgs::PlanningSceneComponents comp;
+	comp.components = moveit_msgs::PlanningSceneComponents::OCTOMAP;
+	moveit_msgs::PlanningScene octomap_msg;
+	planning_scene->getPlanningSceneMsg(octomap_msg, comp);
+	// the resolution of the recorder map is 0.02 and the live recorded ones are set to 0.25
+	// is a bit hacky, but its only purpose is to inform us if the octomap was not loaded
+	if (octomap_msg.world.octomap.octomap.resolution != 0.02 )
+		ROS_ERROR("InverseCapabilitySampling::%s: No octomap present for collision checks!", __func__);
+
 	int count_draws = 0;
 	while (i < numberOfDraws)
 	{
 		count_draws++;
 
 		PosePercent torso_pose_in_surface_frame = instance->sampleTorsoPose(tree, bbox);
-//		ROS_INFO_STREAM(torso_pose_in_surface_frame);
 
 		PosePercent torso_pose_in_map_frame = instance->transformPosePercentInMap(torso_pose_in_surface_frame, surface_pose);
-//		ROS_INFO_STREAM(torso_pose_in_map_frame);
 
 		PosePercent base_pose;
-		// if true, robot is in collision and skip that pose
+		// if true, robot is in collision and skip that pose + convert sampled pose to base pose!
+		// the reason why 3d collision check is done before 2d map check
 		if (instance->robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
 			continue;
 
@@ -99,14 +108,6 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 		if (base_pose.percent > result.percent)
 			result = base_pose;
 		i++;
-
-//		PosePercent base_pose;
-//		if (!instance->robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
-//		{
-//			if (base_pose.percent > result.percent)
-//				result = base_pose;
-//			i++;
-//		}
 	}
 
 
