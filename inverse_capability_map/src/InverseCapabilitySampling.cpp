@@ -71,7 +71,7 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			"y: [%lf, %lf]\n"
 			"z: [%lf, %lf]", bbox.x_min, bbox.x_max, bbox.y_min, bbox.y_max, bbox.z_min, bbox.z_max);
 
-	// check if we have an octomap, otherwise print error msgs because collision checks make no sense!
+	// check if we have an octomap, otherwise print msg because collision checks make no sense!
 	moveit_msgs::PlanningSceneComponents comp;
 	comp.components = moveit_msgs::PlanningSceneComponents::OCTOMAP;
 	moveit_msgs::PlanningScene octomap_msg;
@@ -79,7 +79,7 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 	// the resolution of the recorder map is 0.02 and the live recorded ones are set to 0.25
 	// is a bit hacky, but its only purpose is to inform us if the octomap was not loaded
 	if (octomap_msg.world.octomap.octomap.resolution != 0.02 )
-		ROS_ERROR("InverseCapabilitySampling::%s: No octomap present for collision checks!", __func__);
+		ROS_WARN("InverseCapabilitySampling::%s: No recorder octomap present for collision checks!", __func__);
 
 	int count_draws = 0;
 	while (i < numberOfDraws)
