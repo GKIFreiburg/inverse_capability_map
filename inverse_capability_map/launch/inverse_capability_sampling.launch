@@ -1,6 +1,20 @@
 <!-- In order to start the inverse capapbility sampling you need to start
 entire planner -->
 <launch>
+
+	<arg name="numberOfDraws" value="20" />
+	<arg name="numberOfIterations" value="500" />
+	<arg name="deviation_x" value="0.5" />
+	<arg name="deviation_y" value="0.5" />
+	<arg name="deviation_z" value="0.5" />
+	<arg name="deviation_theta" value="0.785" /> <!-- 3.14 / 4 -->
+	<!-- if min_percent_of_max = 0 and appy_negative_update = true
+			==> samples are spread around table -->
+	<arg name="min_percent_of_max" value="0" />
+	<!-- if apply_negative_update = false, only best samples are taken -->
+	<arg name="apply_negative_update" value="false" />
+
+
     <!-- name of polygon without ending -->
     <arg name="poly_name" value="table1" />
 
@@ -18,7 +32,14 @@ entire planner -->
     <node pkg="inverse_capability_map" type="inverse_capability_sampling_main" name="inverse_capability_sampling_main" output="screen">
 		<param name="path_inv_cap" type="string" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
 		<param name="poly_name" type="string" value="$(arg poly_name)" />
-		<param name="num_draws" type="int" value="$(arg num_draws)" />
+		<param name="numberOfDraws" type="int" value="$(arg numberOfDraws)" />
+		<param name="numberOfIterations" type="int" value="$(arg numberOfIterations)" />
+		<param name="deviation_x" type="double" value="$(arg deviation_x)" />
+		<param name="deviation_y" type="double" value="$(arg deviation_y)" />
+		<param name="deviation_z" type="double" value="$(arg deviation_z)" />
+		<param name="deviation_theta" type="double" value="$(arg deviation_theta)" />
+		<param name="min_percent_of_max" type="double" value="$(arg min_percent_of_max)" />
+		<param name="apply_negative_update" type="bool" value="$(arg apply_negative_update)"/>
     </node>
 
 </launch>

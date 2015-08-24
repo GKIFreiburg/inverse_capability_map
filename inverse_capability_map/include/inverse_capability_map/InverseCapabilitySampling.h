@@ -25,15 +25,35 @@ class InverseCapabilitySampling
 	InverseCapabilitySampling(long int seed = 0);
 	~InverseCapabilitySampling();
 
+	// Draw samples out of a 4D (x,y,z,theta) space
+	/* Input:
+	 * 		- planning_scene: needed for collision checks
+	 * 		- tree: inverse surface reachability map
+	 * 		- surface_pose: the pose of surface (table) in the map
+	 * 		- numberOfDraws: Draw this many valid samples and chose the best one (with hightest percentage)
+	 * 		- samples: previously drawn samples, needed to compute mahalanobis distance to build negative update
+	 * 				   to spread the samples around the surface
+	 * 		- covariance: covariance matrix indicating how two close samples should be punished
+	 * 		- min_percent_of_max: Enter a percentage, needed to calculate a reference which is build from the
+	 * 		           maximum value in tree and as reference to eliminate new samples
+	 * 		- verbose: showing some additional info
+	 * 		- seed: to initialize random number generator
+	 *
+	 *  Return Value:
+	 *  	- PosePercent: a geometry_msgs::PoseStamped around the surface with an additional double, representing
+	 *  			   the reachability on the surface
+	 */
 	static PosePercent drawBestOfXSamples(planning_scene::PlanningScenePtr& planning_scene,
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
 			unsigned int numberOfDraws,
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples = std::map<std::string, geometry_msgs::PoseStamped>(),
 			const Eigen::Matrix4d& covariance = Eigen::Matrix4d(),
+			const double min_percent_of_max = 0.0,
 			bool verbose = false,
 			long int seed = 0);
 
+	// Compute the (4D - x,y,z, theta) mahalanobis distance between a newly sampled pose and previous samples poses
 	static double computeMahalanobisDistance(const PosePercent& base_pose,
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
 			const Eigen::Matrix4d& covariance);
@@ -53,6 +73,7 @@ class InverseCapabilitySampling
 			unsigned int numberOfDraws,
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples = std::map<std::string, geometry_msgs::PoseStamped>(),
 			const Eigen::Matrix4d& covariance = Eigen::Matrix4d(),
+			const double min_percent_of_max = 0.0,
 			bool verbose = false);
 
 	double getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name);

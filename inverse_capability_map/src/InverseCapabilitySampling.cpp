@@ -45,12 +45,13 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			unsigned int numberOfDraws,
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
 			const Eigen::Matrix4d& covariance,
+			const double min_percent_of_max,
 			bool verbose,
 			long int seed)
 {
 	if (instance == NULL)
 		instance = new InverseCapabilitySampling(seed);
-	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws, samples, covariance, verbose);
+	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws, samples, covariance, min_percent_of_max, verbose);
 }
 
 InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSamples_(planning_scene::PlanningScenePtr& planning_scene,
@@ -59,12 +60,15 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			unsigned int numberOfDraws,
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
 			const Eigen::Matrix4d& covariance,
+			const double min_percent_of_max,
 			bool verbose)
 {
 	unsigned int i = 0;
 	PosePercent result;
 	result.percent = 0;
 	moveit::core::RobotState& robot_state = planning_scene->getCurrentStateNonConst();
+	// compute miniumum percent
+	const double minimum_percent = tree->getMaximumPercent() * (min_percent_of_max / 100);
 
 	std::pair<double, double> z_range = instance->computeZSamplingRange(robot_state, tree, surface_pose);
 	ROS_DEBUG("z_range: %lf, %lf", z_range.first, z_range.second);
@@ -109,8 +113,28 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 				continue;
 		}
 
+		double mahalanobis_distance = 1.0;
+		if (samples.size() != 0)
+		{
+			// compute mahalanobis distance to each drawn sample, to determine if new drawn pose is close to a sample,
+			// if so punish new sample by decreasing percent
+			mahalanobis_distance = instance->computeMahalanobisDistance(base_pose, samples, covariance);
+			// ROS_INFO("mahalanobis_distance: %lf", mahalanobis_distance);
+
+			// this condition is needed so that it is possible to return an empty sampled pose
+			// because there are enough samples drawn - the region is grounded out!
+			if (base_pose.percent * mahalanobis_distance < minimum_percent)
+			{
+				// ROS_INFO("base_pose_percent: %lf *  maha: %lf < minimum_percent: %lf", base_pose.percent, mahalanobis_distance, minimum_percent);
+				i++;
+				if (i == numberOfDraws && verbose)
+					ROS_WARN("InverseCapabilitySampling::%s: grounded out!", __func__);
+				continue;
+			}
+		}
+
 		// pose is fine, check for better pose and increase number of valid poses
-		if (base_pose.percent > result.percent)
+		if (base_pose.percent * mahalanobis_distance > result.percent)
 			result = base_pose;
 		i++;
 	}
@@ -397,13 +421,11 @@ double InverseCapabilitySampling::computeMahalanobisDistance(const PosePercent& 
 		const Eigen::Matrix4d& covariance)
 {
 	double result = 1.0;
-
 	Eigen::Matrix4d inverse;
 	bool invertible;
 	double determinant = covariance.determinant();
 	// compute inverse of covariance matrix and check if invertible
 	covariance.computeInverseAndDetWithCheck(inverse, determinant, invertible);
-
 //	ROS_INFO_STREAM("covariance:\n" << covariance);
 //	ROS_INFO_STREAM("inverse:\n" << inverse);
 
@@ -433,10 +455,10 @@ double InverseCapabilitySampling::computeMahalanobisDistance(const PosePercent& 
 		// mahalanobis distance = (x - mu)' * (covariance-Matrix)^(-1) * (x - mu)
 		Eigen::Vector4d difference;
 		difference = x - mu;
-		ROS_INFO_STREAM(difference);
+//		ROS_INFO_STREAM(difference);
 		double maha_dist = difference.transpose() * inverse * difference;
 
-		ROS_INFO("dist: %lf", maha_dist);
+//		ROS_INFO("dist: %lf", maha_dist);
 		if (maha_dist < 1.0)
 			result *= maha_dist;
 	}
