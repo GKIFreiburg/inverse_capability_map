@@ -3,7 +3,7 @@
     <arg name="poly_name" value="table1" />
 
     <!-- select group_name: left_arm or right_arm or combined-->
-    <arg name="group_name" value="combined" />
+    <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
     <arg name="r" value="0.1" />
@@ -39,6 +39,7 @@
     <arg name="path_name" value="$(find inverse_capability_map_generator)/maps/inv_cap_$(arg poly_name)_pr2_$(arg group_name)_$(arg r)m_$(arg t)t.icpm" />
     <!-- path to polygon -->
     <arg name="path_poly" value="$(find primitive_to_polygon)/polygons/$(arg poly_name).poly" />
+    <!-- arg name="path_poly" value="$(find primitive_to_polygon)/polygons/table1.poly" /-->
     
     <arg name="c" value="-c" if="$(arg colortable)" />
     <arg name="c" value="" unless="$(arg colortable)" />
