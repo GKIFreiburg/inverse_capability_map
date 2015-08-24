@@ -52,8 +52,13 @@ int main(int argc, char** argv)
     		"Example: -c 1.5 OR -c 1.5 -c 30";
     TCLAP::MultiArg<double> circleArg("c", "circle", msg, false, "floating point");
 
+    msg = "Specify the padding around the primitive\n"
+    		"Example: -d 0.1";
+    TCLAP::ValueArg<double> paddingArg("d", "padding", msg, false, 0.1, "floating point");
+
     cmd.add(rectangleArg);
     cmd.add(circleArg);
+    cmd.add(paddingArg);
     cmd.add(pathNameArg);
 
     // parse arguments with TCLAP
@@ -77,18 +82,26 @@ int main(int argc, char** argv)
     std::vector<double> circle    = circleArg.getValue();
     verifyInput(rectangle, circle);
 
+    // add padding if necessary
+    // padding must be positive since we want to increase the scope of the primitive
+	double padding = paddingArg.getValue();
+    if (padding < 0.0)
+    	padding = 0.0;
+    else
+    	ROS_INFO("Padding was set to %lf m.", padding);
+
     // Factory Pattern to create the primitive
     Primitive* primitive;
     if (rectangle.size() != 0)
     {
-    	primitive = new Rectangle(rectangle[0], rectangle[1]);
+    	primitive = new Rectangle(rectangle[0], rectangle[1], padding);
     }
     else if (circle.size() != 0)
     {
     	if (circle.size() == 1)
-    		primitive = new Circle(circle[0]);
+    		primitive = new Circle(circle[0], padding);
     	else // circle size == 2
-    		primitive = new Circle(circle[0], circle[1]);
+    		primitive = new Circle(circle[0], circle[1],  padding);
     }
 
     geometry_msgs::Polygon polygon = primitive->createPolygon();

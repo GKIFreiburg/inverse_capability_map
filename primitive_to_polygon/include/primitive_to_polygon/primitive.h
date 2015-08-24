@@ -13,22 +13,22 @@ public:
 class Rectangle : public Primitive
 {
 public:
-	Rectangle(double width, double height);
+	Rectangle(double width, double height, double padding = 0);
 	~Rectangle();
 	geometry_msgs::Polygon createPolygon();
 
 private:
-	double width_, height_;
+	double width_, height_, padding_;
 };
 
 class Circle : public Primitive
 {
 public:
-	Circle(double radius, unsigned int points = 16);
+	Circle(double radius, unsigned int points = 16, double padding = 0);
 	~Circle();
 	geometry_msgs::Polygon createPolygon();
 
 private:
-	double radius_;
+	double radius_, padding_;
 	unsigned int points_;
 };

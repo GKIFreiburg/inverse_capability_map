@@ -1,9 +1,14 @@
 #include "primitive_to_polygon/primitive.h"
 #include <ros/assert.h>
 
-Rectangle::Rectangle(double width, double height)
-	: width_(width), height_(height)
+Rectangle::Rectangle(double width, double height, double padding)
+	: width_(width), height_(height), padding_(padding)
 {
+	if (padding_ > 0.0)
+	{
+		width_  += 2 * padding_;
+		height_ += 2 * padding_;
+	}
 }
 
 geometry_msgs::Polygon Rectangle::createPolygon()
@@ -12,6 +17,7 @@ geometry_msgs::Polygon Rectangle::createPolygon()
 	polygon.points.resize(4);
 	ROS_ASSERT(polygon.points.size() == 4);
 	geometry_msgs::Point32 p;
+
 	p.x = -width_ / 2;
 	p.y = -height_ / 2;
 	polygon.points[0] = p;
@@ -32,9 +38,11 @@ geometry_msgs::Polygon Rectangle::createPolygon()
 	return polygon;
 }
 
-Circle::Circle(double radius, unsigned int points)
-	: radius_(radius), points_(points)
+Circle::Circle(double radius, unsigned int points, double padding)
+	: radius_(radius), points_(points), padding_(padding)
 {
+	if (padding_ > 0.0)
+		radius_ += padding;
 }
 
 geometry_msgs::Polygon Circle::createPolygon()

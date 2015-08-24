@@ -1,15 +1,21 @@
 <launch>
     <!-- polygon name -->
-    <arg name="name" value="table1" />
+    <arg name="name" value="table2" />
     
     <!-- select primitive -->
     <arg name="rectangle" value="true" />
     <arg name="circle" value="false" />
+
+	<!-- select padding -->
+	<arg name="use_padding" value="true" />
+
+	<!-- set padding -->
+	<arg name="padding" value="0.1" />
     
     <!-- rectangle params: width, height -->
 	<!-- x-value corresponds to width and y-value to height -->
-    <arg name="width" value="1.4" />
-    <arg name="length" value="0.65" />
+    <arg name="width" value="1.0" />
+    <arg name="length" value="1.5" />
     
     <!-- circle params: radius, points -->
     <arg name="radius" value="0.75" />
@@ -21,8 +27,11 @@
 	<arg name="r" value="" unless="$(arg rectangle)" />
 	<arg name="c" value="-c $(arg radius) -c $(arg points)" if="$(arg circle)" />
 	<arg name="c" value="" unless="$(arg circle)" />
+	<arg name="p" value="-d $(arg padding)" if="$(arg use_padding)" />
+	<arg name="p" value="" unless="$(arg use_padding)" />
 
-    <arg name="path_name" value="$(find primitive_to_polygon)/polygons/$(arg name).poly" />
+    <arg name="path_name" value="$(find primitive_to_polygon)/polygons/$(arg name).poly" unless="$(arg use_padding)"/>
+    <arg name="path_name" value="$(find primitive_to_polygon)/polygons/$(arg name)_padding_$(arg padding).poly" if="$(arg use_padding)"/>
 
     <node pkg="primitive_to_polygon" type="primitive_to_polygon"
     	name="primitive_to_polygon"
