@@ -1,6 +1,7 @@
 #include "inverse_capability_map/InverseCapabilitySampling.h"
 #include <tf_conversions/tf_eigen.h>
 #include <nav_msgs/GetMap.h>
+#include <angles/angles.h>
 
 InverseCapabilitySampling* InverseCapabilitySampling::instance = NULL;
 
@@ -42,18 +43,22 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
 			unsigned int numberOfDraws,
+			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
+			const Eigen::Matrix4d& covariance,
 			bool verbose,
 			long int seed)
 {
 	if (instance == NULL)
 		instance = new InverseCapabilitySampling(seed);
-	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws, verbose);
+	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws, samples, covariance, verbose);
 }
 
 InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSamples_(planning_scene::PlanningScenePtr& planning_scene,
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
 			unsigned int numberOfDraws,
+			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
+			const Eigen::Matrix4d& covariance,
 			bool verbose)
 {
 	unsigned int i = 0;
@@ -79,7 +84,7 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 	// the resolution of the recorder map is 0.02 and the live recorded ones are set to 0.25
 	// is a bit hacky, but its only purpose is to inform us if the octomap was not loaded
 	if (octomap_msg.world.octomap.octomap.resolution != 0.02 )
-		ROS_WARN("InverseCapabilitySampling::%s: No recorder octomap present for collision checks!", __func__);
+		ROS_WARN("InverseCapabilitySampling::%s: No recorded octomap present for collision checks!", __func__);
 
 	int count_draws = 0;
 	while (i < numberOfDraws)
@@ -385,6 +390,58 @@ bool InverseCapabilitySampling::robotOutsideMap(const PosePercent& base_pose)
     	return false;
 
 	return true;
+}
+
+double InverseCapabilitySampling::computeMahalanobisDistance(const PosePercent& base_pose,
+		const std::map<std::string, geometry_msgs::PoseStamped>& samples,
+		const Eigen::Matrix4d& covariance)
+{
+	double result = 1.0;
+
+	Eigen::Matrix4d inverse;
+	bool invertible;
+	double determinant = covariance.determinant();
+	// compute inverse of covariance matrix and check if invertible
+	covariance.computeInverseAndDetWithCheck(inverse, determinant, invertible);
+
+//	ROS_INFO_STREAM("covariance:\n" << covariance);
+//	ROS_INFO_STREAM("inverse:\n" << inverse);
+
+	if (!invertible)
+	{
+		ROS_ERROR("InverseCapabilitySampling::%s: Covariance matrix is NOT invertible", __func__);
+		return 1.0;
+	}
+
+	// fill vector: x, y, z, theta (= yaw)
+	// set mu
+	Eigen::Vector4d mu;
+	const geometry_msgs::Pose& base = base_pose.pose.pose;
+	// angle in range of 0 to 2pi
+	double theta = angles::normalize_angle_positive(tf::getYaw(base_pose.pose.pose.orientation));
+
+	mu << base.position.x, base.position.y, base.position.z, theta;
+
+	std::map<std::string, geometry_msgs::PoseStamped>::const_iterator it;
+	for (it = samples.begin(); it != samples.end(); it++)
+	{
+		const geometry_msgs::Pose& sample = it->second.pose;
+		double yaw = angles::normalize_angle_positive(tf::getYaw(sample.orientation));
+		Eigen::Vector4d x;
+		x << sample.position.x, sample.position.y, sample.position.z, yaw;
+
+		// mahalanobis distance = (x - mu)' * (covariance-Matrix)^(-1) * (x - mu)
+		Eigen::Vector4d difference;
+		difference = x - mu;
+		ROS_INFO_STREAM(difference);
+		double maha_dist = difference.transpose() * inverse * difference;
+
+		ROS_INFO("dist: %lf", maha_dist);
+		if (maha_dist < 1.0)
+			result *= maha_dist;
+	}
+
+	return result;
 }
 
 std::ostream& operator<<(std::ostream& out, const InverseCapabilitySampling::PosePercent& pose)

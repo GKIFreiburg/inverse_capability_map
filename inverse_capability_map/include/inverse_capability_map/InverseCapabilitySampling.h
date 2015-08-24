@@ -29,8 +29,14 @@ class InverseCapabilitySampling
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
 			unsigned int numberOfDraws,
+			const std::map<std::string, geometry_msgs::PoseStamped>& samples = std::map<std::string, geometry_msgs::PoseStamped>(),
+			const Eigen::Matrix4d& covariance = Eigen::Matrix4d(),
 			bool verbose = false,
 			long int seed = 0);
+
+	static double computeMahalanobisDistance(const PosePercent& base_pose,
+			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
+			const Eigen::Matrix4d& covariance);
 
 	friend std::ostream& operator<<(std::ostream& out, const PosePercent& pose);
 
@@ -45,7 +51,9 @@ class InverseCapabilitySampling
 			const InverseCapabilityOcTree* tree,
 			const geometry_msgs::PoseStamped& surface_pose,
 			unsigned int numberOfDraws,
-			bool );
+			const std::map<std::string, geometry_msgs::PoseStamped>& samples = std::map<std::string, geometry_msgs::PoseStamped>(),
+			const Eigen::Matrix4d& covariance = Eigen::Matrix4d(),
+			bool verbose = false);
 
 	double getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name);
 

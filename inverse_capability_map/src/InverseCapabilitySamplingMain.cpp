@@ -91,7 +91,6 @@ int main(int argc, char** argv)
 	InverseCapabilitySampling::PosePercent sampled_pose = InverseCapabilitySampling::drawBestOfXSamples(planning_scene, tree, table_pose, numberOfDraws);
 	ROS_INFO_STREAM("Sampled Pose: Percent: " << sampled_pose.percent << "\n" << sampled_pose.pose);
 
-
 	moveit::core::RobotState robot_state = planning_scene->getCurrentState();
 	// full collision check, check if robot is in collision with polygon using base_link as reference frame
 	robot_state.setVariablePosition("world_joint/x", sampled_pose.pose.pose.position.x);
@@ -117,6 +116,50 @@ int main(int argc, char** argv)
 	moveit_msgs::PlanningScene ps_msg;
 	planning_scene->getPlanningSceneMsg(ps_msg);
 	pub_ps.publish(ps_msg);
+
+	/****************************************************
+	 * Testing inverse update using mahalanobis distance
+	 ***************************************************/
+	InverseCapabilitySampling::PosePercent base_pose = sampled_pose;
+
+	Eigen::Matrix4d covariance;
+	// declare standard deviations
+	double dev_x, dev_y, dev_z, dev_theta;
+	dev_x = 0.5;
+	dev_y = 0.5;
+	dev_z = 0.5;
+	dev_theta = M_PI/4;
+
+	double cov_x, cov_y, cov_z, cov_theta;
+	cov_x = dev_x * dev_x;
+	cov_y = dev_y * dev_y;
+	cov_z = dev_z * dev_z;
+	cov_theta = dev_theta * dev_theta;
+
+	covariance << cov_x,  0.0  ,  0.0  , 0.0,
+			       0.0 , cov_y ,  0.0  , 0.0,
+			       0.0 ,  0.0  , cov_z , 0.0,
+			       0.0 ,  0.0  ,  0.0  , cov_theta;
+
+	std::map<std::string, geometry_msgs::PoseStamped> samples;
+	sampled_pose.pose.pose.position.x = base_pose.pose.pose.position.x + 0.2;
+	sampled_pose.pose.pose.position.y = base_pose.pose.pose.position.y + 0.2;
+	double yaw = tf::getYaw(base_pose.pose.pose.orientation);
+	yaw += M_PI/16;
+	tf::Quaternion quaternion = tf::createQuaternionFromYaw(yaw);
+	tf::quaternionTFToMsg(quaternion, sampled_pose.pose.pose.orientation);
+	samples["test"] = sampled_pose.pose;
+
+	sampled_pose.pose.pose.position.x = base_pose.pose.pose.position.x + 0.2;
+	sampled_pose.pose.pose.position.y = base_pose.pose.pose.position.y + 0.4;
+	yaw = tf::getYaw(base_pose.pose.pose.orientation);
+	yaw += M_PI/128;
+	quaternion = tf::createQuaternionFromYaw(yaw);
+	tf::quaternionTFToMsg(quaternion, sampled_pose.pose.pose.orientation);
+	samples["test1"] = sampled_pose.pose;
+
+	double dist = InverseCapabilitySampling::computeMahalanobisDistance(base_pose, samples, covariance);
+	ROS_WARN("mahalanobis distance: %lf", dist);
 
 	ros::spin();
 
