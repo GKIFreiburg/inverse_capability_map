@@ -188,7 +188,11 @@ std::pair<double, double> InverseCapabilitySampling::computeZSamplingRange(const
 
 	double torso_to_max = joint_bounds.max_position_ - *torso_joint_value;
 	double torso_to_min = joint_bounds.min_position_ - *torso_joint_value; // negative values
-//	ROS_WARN("joint min bound: %lf, torso joint value: %lf", joint_bounds.min_position_, *torso_joint_value);
+	if (torso_to_min > 0.001)
+	{
+		ROS_ERROR("joint min bound: %lf, torso joint value: %lf", joint_bounds.min_position_, *torso_joint_value);
+		ROS_ERROR("torso_to_min: joint min bound - torso joint value: %lf", torso_to_min);
+	}
 	ROS_ASSERT(torso_to_min < 0.001);
 
 	double z_max_sample = z_offset + torso_to_max;
