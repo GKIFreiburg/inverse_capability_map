@@ -222,7 +222,9 @@ int main(int argc, char** argv )
 	ROS_INFO("Markers are published in frame: %s", frame.c_str());
 
 	geometry_msgs::Polygon* poly = polygon::loadPolygon(path_poly);
-	shape_msgs::Mesh mesh = polygon::createMeshFromPolygon(*poly, 0.0, 0.05);
+	double table_height = poly->points[0].z;
+	// returned mesh is centered in the origin (0, 0), the pose defines the position and rotation
+	shape_msgs::Mesh mesh = polygon::createMeshFromPolygon(*poly, - table_height, 0.03);
 	for (size_t i = 0; i < mesh.triangles.size(); i++)
 	{
 		shape_msgs::MeshTriangle tri = mesh.triangles[i];
@@ -237,12 +239,9 @@ int main(int argc, char** argv )
 		tableMarker.points.push_back(mesh.vertices[p1]);
 		tableMarker.points.push_back(mesh.vertices[p2]);
 
-//		tableMarker.color.r = 0.67;
-//		tableMarker.color.g = 0.33;
-//		tableMarker.color.b = 0.0;
 		tableMarker.color.r = (float)205/255;
 		tableMarker.color.g = (float)102/255;
-		tableMarker.color.b = (float)29/255 *0;
+		tableMarker.color.b = (float)29/255 * 0;
 		tableMarker.color.a = 1.0;
 	}
 
