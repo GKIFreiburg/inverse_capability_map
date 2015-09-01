@@ -3,7 +3,7 @@
     <arg name="poly_name" value="table1" />
   
     <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="left_arm" />
+    <arg name="group_name" value="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
     <arg name="r" value="0.1" />
@@ -12,7 +12,7 @@
             
     <arg name="collision_checking" value="true" />
     
-    <arg name="grasp_applicability" value="true" />
+    <arg name="grasp_applicability" value="false" />
 	    <arg name="ik_attempts" value="3" />
         <arg name="ik_timeout" value="0.1" />
         

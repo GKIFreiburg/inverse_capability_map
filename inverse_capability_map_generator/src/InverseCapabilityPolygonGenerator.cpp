@@ -328,7 +328,7 @@ int main(int argc, char** argv)
 	tf::poseEigenToTF(base_trans, base_transform);
 	// from torso to base transform
 	torso_base_transform = torso_transform.inverseTimes(base_transform);
-	ROS_WARN("torso_base_transform: x: %lf, y: %lf", torso_base_transform.getOrigin().getX(), torso_base_transform.getOrigin().getY());
+//	ROS_WARN("torso_base_transform: x: %lf, y: %lf", torso_base_transform.getOrigin().getX(), torso_base_transform.getOrigin().getY());
 //	ROS_ASSERT(torso_base_transform.getOrigin().getX() == 0.05);
 //	ROS_ASSERT(torso_base_transform.getOrigin().getY() == 0.00);
 	tf::Pose robot_base_in_map_frame;
@@ -356,6 +356,8 @@ int main(int argc, char** argv)
 
 
 
+
+
 //	octomap::OcTreeKey key = object_tree->coordToKey(0.95, -0.15, 0.05);
 //	octomath::Vector3 v = object_tree->keyToCoord(key);
 //	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
@@ -371,7 +373,6 @@ int main(int argc, char** argv)
 	geometry_msgs::PoseStamped object_in_map_frame, robot_torso_in_object_frame;
 	for (unsigned int l = 0; l < length_cells; l++)
     {
-		ROS_WARN("l : %d", l);
 		for (unsigned int w = 0; w < width_cells; w++)
     	{
     		// update object_pose
@@ -379,30 +380,34 @@ int main(int argc, char** argv)
 			object_in_map_frame.pose.position.x = start_pose.pose.position.x + w * resolution;
 			object_in_map_frame.pose.position.y = start_pose.pose.position.y + l * resolution;
 
-			// contains a slight different position than object_in_map_frame (has higher z value = center of co)
-			ROS_ASSERT(co_object.primitive_poses.size() > 0);
-			co_object.primitive_poses[0].position.x = object_in_map_frame.pose.position.x;
-			co_object.primitive_poses[0].position.y = object_in_map_frame.pose.position.y;
-			planning_scene.processCollisionObjectMsg(co_object);
-			grasps_goal.collision_object = co_object;
-		    generate_grasps.sendGoal(grasps_goal);
-		    if(!generate_grasps.waitForResult(ros::Duration(30.0)))
-		    {
-		    	ROS_ERROR("Could not get grasps!");
-		    	return 1;
-		    }
+			std::vector<moveit_msgs::Grasp> grasps;
+			if (grasp_applicability)
+			{
+				// contains a slight different position than object_in_map_frame (has higher z value = center of co)
+				ROS_ASSERT(co_object.primitive_poses.size() > 0);
+				co_object.primitive_poses[0].position.x = object_in_map_frame.pose.position.x;
+				co_object.primitive_poses[0].position.y = object_in_map_frame.pose.position.y;
+				planning_scene.processCollisionObjectMsg(co_object);
+				grasps_goal.collision_object = co_object;
+				generate_grasps.sendGoal(grasps_goal);
+				if(!generate_grasps.waitForResult(ros::Duration(30.0)))
+				{
+					ROS_ERROR("Could not get grasps!");
+					return 1;
+				}
 
-		    // filter out some grasps - to speed up computation
-		    std::vector<moveit_msgs::Grasp> grasps;
-		    for (size_t g = 0 ; g < generate_grasps.getResult()->grasps.size(); g++)
-		    {
-		    	if (generate_grasps.getResult()->grasps[g].grasp_pose.pose.position.z == co_object.primitive_poses[0].position.z)
-		    		grasps.push_back(generate_grasps.getResult()->grasps[g]);
-		    }
-		    ROS_INFO("Number of grasps to be checked: %lu", grasps.size());
+				// filter out some grasps - to speed up computation
+				for (size_t g = 0 ; g < generate_grasps.getResult()->grasps.size(); g++)
+				{
+					if (generate_grasps.getResult()->grasps[g].grasp_pose.pose.position.z == co_object.primitive_poses[0].position.z)
+						grasps.push_back(generate_grasps.getResult()->grasps[g]);
+				}
+				ROS_INFO("Number of grasps to be checked: %lu", grasps.size());
+			}
 
 			// loop through all inverse capabilities
-			for (InverseCapabilityOcTree::leaf_iterator it = object_tree->begin_leafs(); it != object_tree->end_leafs(); ++it)
+			for (InverseCapabilityOcTree::leaf_iterator it = object_tree->begin_leafs(),
+					end = object_tree->end_leafs(); it != end; ++it)
 			{
 				// Printing progress bar
 				numCapsComputed += 1.0;
@@ -414,8 +419,7 @@ int main(int argc, char** argv)
 					fflush(stdout);
 				}
 
-				// z value is not in range, skip value
-				// FIXME: maybe use lead_bbox_iterator
+				// z value is not in z-range, skip value
 				if (it.getZ() < z_range.first || it.getZ() > z_range.second)
 					continue;
 
@@ -559,7 +563,7 @@ int main(int argc, char** argv)
     printf("done              \n");
     ROS_INFO("Maximum percent of inverse capability: %lf", max_percent);
     ROS_INFO("Number of total inverse capabilities: %lu", num_inv_cap);
-    ROS_WARN("Number of rejected poses due to grasp applicability: %lu", rejected_poses);
+    ROS_INFO("Number of rejected poses due to grasp applicability: %lu", rejected_poses);
 
     if (!table_tree.writeFile(input.path_name))
     {
