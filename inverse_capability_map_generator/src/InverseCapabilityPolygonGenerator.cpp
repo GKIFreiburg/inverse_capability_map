@@ -185,7 +185,7 @@ int main(int argc, char** argv)
 	ROS_INFO("Collision checking is turned %s", collision_checking ? "ON" : "OFF");
 	bool grasp_applicability;
 	nhPriv.param("grasp_applicability", grasp_applicability, true);
-	ROS_INFO("Grasp applicability is turned %s", collision_checking ? "ON" : "OFF");
+	ROS_INFO("Grasp applicability is turned %s", grasp_applicability ? "ON" : "OFF");
 	int ik_attempts;
 	nhPriv.param("ik_attempts", ik_attempts, 3);
 	double ik_timeout;
@@ -280,8 +280,8 @@ int main(int argc, char** argv)
 	start_pose.header.frame_id = planning_scene.getPlanningFrame();
 	double rest_x = widthBbox - width_cells * resolution;
 	double rest_y = lengthBbox - length_cells * resolution;
-	start_pose.pose.position.x = center.x - widthBbox / 2 + resolution / 2 + rest_x / 2;
-	start_pose.pose.position.y = center.y - lengthBbox / 2 + resolution / 2 + rest_y / 2;
+	start_pose.pose.position.x = center.x - widthBbox / 2 + rest_x / 2;
+	start_pose.pose.position.y = center.y - lengthBbox / 2 + rest_y / 2;
 	start_pose.pose.position.z = table_height;
 	tf::Quaternion q;
 	q.setRPY(0, 0, 0);
@@ -371,9 +371,9 @@ int main(int argc, char** argv)
 
 
 	geometry_msgs::PoseStamped object_in_map_frame, robot_torso_in_object_frame;
-	for (unsigned int l = 0; l < length_cells; l++)
+	for (unsigned int l = 0; l <= length_cells; l++)
     {
-		for (unsigned int w = 0; w < width_cells; w++)
+		for (unsigned int w = 0; w <= width_cells; w++)
     	{
     		// update object_pose
 			object_in_map_frame = start_pose;
@@ -462,10 +462,10 @@ int main(int argc, char** argv)
 						ROS_ASSERT(robot_base_in_map_frame.getOrigin().x() == robot_torso_in_map_frame.getOrigin().x() + 0.05);
 						ROS_ASSERT(robot_base_in_map_frame.getOrigin().x() == robot_torso_in_map_frame.getOrigin().x() + torso_base_transform.getOrigin().getX());
 
-						robot_state.setVariablePosition("world_joint/x", robot_base_in_map_frame.getOrigin().x());
-						robot_state.setVariablePosition("world_joint/y", robot_base_in_map_frame.getOrigin().y());
-//						robot_state.setVariablePosition("world_joint/x", robot_torso_in_map_frame.getOrigin().x());
-//						robot_state.setVariablePosition("world_joint/y", robot_torso_in_map_frame.getOrigin().y());
+//						robot_state.setVariablePosition("world_joint/x", robot_base_in_map_frame.getOrigin().x());
+//						robot_state.setVariablePosition("world_joint/y", robot_base_in_map_frame.getOrigin().y());
+						robot_state.setVariablePosition("world_joint/x", robot_torso_in_map_frame.getOrigin().x());
+						robot_state.setVariablePosition("world_joint/y", robot_torso_in_map_frame.getOrigin().y());
 						robot_state.setVariablePosition("world_joint/theta", mit->first);
 						double torso_value = robot_torso_in_map_frame.getOrigin().z() - torso_min_height;
 						ROS_ASSERT(joint_bounds.min_position_ <= torso_value && torso_value <= joint_bounds.max_position_);
@@ -525,6 +525,10 @@ int main(int argc, char** argv)
 
 				// substract table height again, so that values are centered around table height
 				tf::Pose robot_torso = robot_torso_in_map_frame;
+//				ROS_WARN("robot_torso: (%lf, %lf) robot_base: (%lf, %lf)",
+//						robot_torso_in_map_frame.getOrigin().getX(), robot_torso_in_map_frame.getOrigin().getY(),
+//						robot_base_in_map_frame.getOrigin().getX(), robot_base_in_map_frame.getOrigin().getY());
+//				tf::Pose robot_torso = robot_base_in_map_frame;
 				tf::Vector3 v = robot_torso.getOrigin();
 				v.setZ(v.getZ() - table_height);
 				robot_torso.setOrigin(v);
