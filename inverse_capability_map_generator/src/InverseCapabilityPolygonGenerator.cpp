@@ -165,6 +165,7 @@ int main(int argc, char** argv)
 
 	ros::NodeHandle nh;
 	ros::Publisher pub_ps = nh.advertise<moveit_msgs::PlanningScene>("planning_scene", 1, true);
+	moveit_msgs::PlanningScene ps_msg;
 
 	// parameters and aliases
 	const double& resolution       = input.resolution;
@@ -198,7 +199,6 @@ int main(int argc, char** argv)
 	nhPriv.param<std::string>("poly_name", poly_name, "#UNDEFINED");
 	ROS_INFO("Polygon name is: %s\n", poly_name.c_str());
 
-
 	polygon::bbox bbox = polygon::computeBoundingBox(*poly);
 	double widthBbox, lengthBbox;
 	widthBbox = bbox.xmax - bbox.xmin;
@@ -225,14 +225,12 @@ int main(int argc, char** argv)
 	double progress = 0.0;
 	double progressLimiter = 0.0;
 
-	// create a planningScene object
-	planning_scene_monitor::PlanningSceneMonitorPtr psm(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
-    psm->requestPlanningSceneState();
-    planning_scene_monitor::LockedPlanningSceneRO locked_ps(psm);
-    // Create a copy of planningScene
-    planning_scene::PlanningScenePtr planning_scene = locked_ps->diff();
+	// Set up planning scene
+	robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+	robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
+	planning_scene::PlanningScene planning_scene(kinematic_model);
 
-	robot_state::RobotState& robot_state = planning_scene->getCurrentStateNonConst();
+	robot_state::RobotState& robot_state = planning_scene.getCurrentStateNonConst();
 	// set robot state arms at side
 	setArmsToSide(robot_state);
 
@@ -242,7 +240,6 @@ int main(int argc, char** argv)
 //    	double position = robot_state.getVariablePosition(names[i]);
 //    	ROS_INFO_STREAM(names[i] << " " << position);
 //    }
-
 
 	const moveit::core::RobotModelConstPtr robot_model = robot_state.getRobotModel();
 	const moveit::core::LinkModel* torso_link = robot_model->getLinkModel(object_tree->getBaseName());
@@ -254,10 +251,10 @@ int main(int argc, char** argv)
 
 
 	// Add polygon to planning scene
-	ROS_INFO("Planning frame: %s", planning_scene->getPlanningFrame().c_str());
+	ROS_INFO("Planning frame: %s", planning_scene.getPlanningFrame().c_str());
 	moveit_msgs::CollisionObject co;
 	co.id = "surface";
-	co.header.frame_id = planning_scene->getPlanningFrame();
+	co.header.frame_id = planning_scene.getPlanningFrame();
 	co.header.stamp = ros::Time::now();
 	ROS_ASSERT(poly->points.size() > 0);
 	const double table_height = poly->points[0].z;
@@ -275,12 +272,12 @@ int main(int argc, char** argv)
 	oc.color.g = 0.33;
 	oc.color.b = 0.0;
 	oc.color.a = 1.0;
-	planning_scene->setObjectColor(oc.id, oc.color);
-	planning_scene->processCollisionObjectMsg(co);
+	planning_scene.setObjectColor(oc.id, oc.color);
+	planning_scene.processCollisionObjectMsg(co);
 
 	// start pose at left lower corner of bounding box, but in center of grid cell
 	geometry_msgs::PoseStamped start_pose;
-	start_pose.header.frame_id = planning_scene->getPlanningFrame();
+	start_pose.header.frame_id = planning_scene.getPlanningFrame();
 	double rest_x = widthBbox - width_cells * resolution;
 	double rest_y = lengthBbox - length_cells * resolution;
 	start_pose.pose.position.x = center.x - widthBbox / 2 + resolution / 2 + rest_x / 2;
@@ -293,7 +290,7 @@ int main(int argc, char** argv)
 
 	moveit_msgs::CollisionObject co_object;
 	co_object.header.stamp = ros::Time::now();
-	co_object.header.frame_id = planning_scene->getPlanningFrame();;
+	co_object.header.frame_id = planning_scene.getPlanningFrame();;
 	co_object.id = "coke";
 	co_object.primitives.resize(1);
 	co_object.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
@@ -359,7 +356,6 @@ int main(int argc, char** argv)
 
 
 
-
 //	octomap::OcTreeKey key = object_tree->coordToKey(0.95, -0.15, 0.05);
 //	octomath::Vector3 v = object_tree->keyToCoord(key);
 //	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
@@ -371,40 +367,12 @@ int main(int argc, char** argv)
 //	else
 //		ROS_WARN("not equal");
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	// Set up planning pipeline
-//	planning_pipeline::PlanningPipeline planning_pipeline(planning_scene->getRobotModel(), nh, "planning_plugin", "request_adapters");
-//	planning_interface::MotionPlanRequest planning_request;
-//	planning_interface::MotionPlanResponse planning_response;
-
-
-//	g_action_debug.reset(new actionlib::SimpleActionClient<planner_modules_pr2::EmptyAction>("empty_action", true));
-//	ROS_INFO("drive_pose_module::%s: Waiting for empty_action action.", __func__);
-//	ROS_INFO("drive_pose_module::%s: Execute: rosrun actionlib axserver.py /empty_action planner_modules_pr2/EmptyAction", __func__);
-//	g_action_debug->waitForServer();
-
-	std::string ps_topic = "virtual_planning_scene";
-	ROS_INFO("drive_pose_module::%s: Debugging of PS enabled, publishing to topic: /%s", __func__, ps_topic.c_str());
-	pub_ps = nh.advertise<moveit_msgs::PlanningScene>(ps_topic, 1, true);
-	double torso_tmp, torso_old;
-	std::set<double> heights;
-    moveit_msgs::PlanningScene msg;
-    planning_scene->processCollisionObjectMsg(co_object);
-    planning_scene->getPlanningSceneMsg(msg);
-    pub_ps.publish(msg);
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
 
 	geometry_msgs::PoseStamped object_in_map_frame, robot_torso_in_object_frame;
 	for (unsigned int l = 0; l < length_cells; l++)
-//		for (unsigned int l = 0; l < 1; l++)
     {
 		ROS_WARN("l : %d", l);
 		for (unsigned int w = 0; w < width_cells; w++)
-//			for (unsigned int w = 0; w < 1; w++)
     	{
     		// update object_pose
 			object_in_map_frame = start_pose;
@@ -415,7 +383,7 @@ int main(int argc, char** argv)
 			ROS_ASSERT(co_object.primitive_poses.size() > 0);
 			co_object.primitive_poses[0].position.x = object_in_map_frame.pose.position.x;
 			co_object.primitive_poses[0].position.y = object_in_map_frame.pose.position.y;
-			planning_scene->processCollisionObjectMsg(co_object);
+			planning_scene.processCollisionObjectMsg(co_object);
 			grasps_goal.collision_object = co_object;
 		    generate_grasps.sendGoal(grasps_goal);
 		    if(!generate_grasps.waitForResult(ros::Duration(30.0)))
@@ -499,18 +467,16 @@ int main(int argc, char** argv)
 						ROS_ASSERT(joint_bounds.min_position_ <= torso_value && torso_value <= joint_bounds.max_position_);
 						robot_state.setVariablePosition("torso_lift_joint", torso_value);
 						setArmsToSide(robot_state);
-						planning_scene->setCurrentState(robot_state);
+						planning_scene.setCurrentState(robot_state);
 
 						collision_result.clear();
-						planning_scene->checkCollision(collision_request, collision_result, robot_state);
+						planning_scene.checkCollision(collision_request, collision_result, robot_state);
 						// if collision is found, remove (theta, percent) from thetas
 						if (collision_result.collision)
 						{
 							delete_thetas.insert(mit->first);
 							continue;
 						}
-
-
 
 						if (grasp_applicability)
 						{
@@ -523,19 +489,19 @@ int main(int argc, char** argv)
 								bool reachable = robot_state.setFromIK(joint_model_group, grasp_pose.pose, object_tree->getTipName(), ik_attempts, ik_timeout);
 								if (!reachable)
 									continue;
-								planning_scene->setCurrentState(robot_state);
-								collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+								planning_scene.setCurrentState(robot_state);
+								collision_detection::AllowedCollisionMatrix acm = planning_scene.getAllowedCollisionMatrix();
 								acm.setEntry(co_object.id, eef_links, true);
 
 								collision_result.clear();
-								planning_scene->checkCollision(collision_request, collision_result, robot_state, acm);
+								planning_scene.checkCollision(collision_request, collision_result, robot_state, acm);
 								if (!collision_result.collision)
 								{
 									keep_pose = true;
 									break;
 								}
-								planning_scene->getPlanningSceneMsg(msg);
-								pub_ps.publish(msg);
+								planning_scene.getPlanningSceneMsg(ps_msg);
+								pub_ps.publish(ps_msg);
 								ros::spinOnce();
 							}
 
@@ -545,51 +511,6 @@ int main(int argc, char** argv)
 								rejected_poses++;
 							}
 						}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//						if (false)
-//						{
-//							heights.insert(robot_torso_in_map_frame.getOrigin().z() - torso_min_height);
-//							moveit_msgs::PlanningScene psMsg;
-//							planning_scene->getPlanningSceneMsg(psMsg);
-//							ROS_INFO("drive_pose_module::%s: Publishing planning scene message to topic: %s", __func__, pub_ps.getTopic().c_str());
-//							pub_ps.publish(psMsg);
-//
-//							ros::spinOnce();
-//							ROS_INFO("drive_pose_module::%s: Waiting for user input from Action Server!", __func__);
-//							planner_modules_pr2::EmptyGoal goal;
-//							g_action_debug->sendGoal(goal);
-//							g_action_debug->waitForResult(ros::Duration(5*60));
-//						}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-//						std::vector<double> tolerance_pose(3, 0.01);
-//						std::vector<double> tolerance_angle(3, 0.01);
-//						geometry_msgs::PoseStamped grasp_pose = generate_grasps.getResult()->grasps[0].grasp_pose;
-//						std::string eef = object_tree->getTipName();
-//						ROS_ASSERT(eef == "l_wrist_roll_link");
-//						planning_request.group_name = object_tree->getGroupName();
-//						planning_request.allowed_planning_time = 0.1;
-//						planning_request.num_planning_attempts = 3;
-//						moveit_msgs::Constraints pose_goal = kinematic_constraints::constructGoalConstraints(eef, grasp_pose, tolerance_pose, tolerance_angle);
-//						planning_request.goal_constraints.push_back(pose_goal);
-//
-//						planning_pipeline.checkSolutionPaths(false);
-//						planning_pipeline.displayComputedMotionPlans(false);
-//
-//						planning_pipeline.generatePlan(planning_scene, planning_request, planning_response);
-
-
-
-
-
-
 					}
 					for (std::set<double>::iterator sit = delete_thetas.begin(); sit != delete_thetas.end(); sit++)
 						thetas.erase(*sit);
