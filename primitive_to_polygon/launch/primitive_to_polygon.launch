@@ -1,18 +1,18 @@
 <launch>
     <!-- polygon name -->
-    <arg name="name" value="table1" />
+    <arg name="name" value="table2" />
     
     <!-- select primitive -->
     <arg name="rectangle" value="true" />
     <arg name="circle" value="false" />
     
     <!-- define the height of the table (z-value in tables.dat) -->
-    <arg name="height" value="0.9" />
+    <arg name="height" value="0.73" />
 
     <!-- rectangle params: width, length -->
 	<!-- x-value corresponds to width and y-value to length -->
-    <arg name="width" value="1.4" />
-    <arg name="length" value="0.65" />
+    <arg name="width" value="1.0" />
+    <arg name="length" value="1.5" />
     
     <!-- circle params: radius, points -->
     <arg name="radius" value="0.75" />

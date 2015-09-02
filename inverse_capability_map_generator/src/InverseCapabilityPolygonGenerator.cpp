@@ -160,6 +160,7 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "inverse_capability_polygon_generator");
 
+
 	Input input = verifyInput(argc, argv);
 	ros::NodeHandle nhPriv("~");
 
@@ -169,6 +170,9 @@ int main(int argc, char** argv)
 
 	// parameters and aliases
 	const double& resolution       = input.resolution;
+
+	// Time measurement
+	ros::WallTime start_time = ros::WallTime::now();
 
 	InverseCapabilityOcTree table_tree(resolution);
 	table_tree.setGroupName(object_tree->getGroupName());
@@ -195,6 +199,9 @@ int main(int argc, char** argv)
 		ROS_INFO("ik_attempts: %d", ik_attempts);
 		ROS_INFO("ik_timeout: %lf", ik_timeout);
 	}
+	bool logging;
+	nhPriv.param("logging", logging, false);
+	ROS_INFO("Logging is turned %s", logging ? "ON" : "OFF");
 	std::string poly_name;
 	nhPriv.param<std::string>("poly_name", poly_name, "#UNDEFINED");
 	ROS_INFO("Polygon name is: %s\n", poly_name.c_str());
@@ -216,7 +223,7 @@ int main(int argc, char** argv)
 	ROS_INFO("Number of length cells: %d", length_cells);
 	ROS_INFO("Number of grid   cells: %d", grid_cells);
 
-	double numCapsToCompute = width_cells * length_cells * object_tree->size();
+	double numCapsToCompute = (width_cells + 1) * (length_cells + 1) * object_tree->size();
 	double numCapsComputed = 0.0;
 
 	ROS_INFO("Number of inverse capabilities to compute: %d", (unsigned int) numCapsToCompute);
@@ -278,6 +285,7 @@ int main(int argc, char** argv)
 	// start pose at left lower corner of bounding box, but in center of grid cell
 	geometry_msgs::PoseStamped start_pose;
 	start_pose.header.frame_id = planning_scene.getPlanningFrame();
+	// if surface is not axis aligned, take care of remaining surface
 	double rest_x = widthBbox - width_cells * resolution;
 	double rest_y = lengthBbox - length_cells * resolution;
 	start_pose.pose.position.x = center.x - widthBbox / 2 + rest_x / 2;
@@ -319,21 +327,19 @@ int main(int argc, char** argv)
 	ROS_INFO("Z-range <min, max>: %lf, %lf", z_range.first, z_range.second);
 
 
-	// take care of torso to base transform
-	const Eigen::Affine3d& torso_trans = robot_state.getGlobalLinkTransform(torso_link->getName());
-	const Eigen::Affine3d& base_trans = robot_state.getGlobalLinkTransform(torso_link->getParentLinkModel()->getName());
-	// convert eigen into tf
-	tf::Pose torso_transform, base_transform, torso_base_transform;
-	tf::poseEigenToTF(torso_trans, torso_transform);
-	tf::poseEigenToTF(base_trans, base_transform);
-	// from torso to base transform
-	torso_base_transform = torso_transform.inverseTimes(base_transform);
-//	ROS_WARN("torso_base_transform: x: %lf, y: %lf", torso_base_transform.getOrigin().getX(), torso_base_transform.getOrigin().getY());
+//	// take care of torso to base transform
+//	const Eigen::Affine3d& torso_trans = robot_state.getGlobalLinkTransform(torso_link->getName());
+//	const Eigen::Affine3d& base_trans = robot_state.getGlobalLinkTransform(torso_link->getParentLinkModel()->getName());
+//	// convert eigen into tf
+//	tf::Pose torso_transform, base_transform, torso_base_transform;
+//	tf::poseEigenToTF(torso_trans, torso_transform);
+//	tf::poseEigenToTF(base_trans, base_transform);
+//	// from torso to base transform
+//	torso_base_transform = torso_transform.inverseTimes(base_transform);
+//	ROS_INFO("torso_base_transform: x: %lf, y: %lf, z: %lf", torso_base_transform.getOrigin().getX(),
+//				torso_base_transform.getOrigin().getY(), torso_base_transform.getOrigin().getZ());
 //	ROS_ASSERT(torso_base_transform.getOrigin().getX() == 0.05);
 //	ROS_ASSERT(torso_base_transform.getOrigin().getY() == 0.00);
-	tf::Pose robot_base_in_map_frame;
-
-
 
 
     // Parameteres needed to perform collision checks
@@ -353,12 +359,7 @@ int main(int argc, char** argv)
 	unsigned int rejected_poses = 0;
 	bool keep_pose = false;
 
-
-
-
-
-
-//	octomap::OcTreeKey key = object_tree->coordToKey(0.95, -0.15, 0.05);
+//	octomap::OcTreeKey key = object_tree->coordToKey(-0.1, 0, 0);
 //	octomath::Vector3 v = object_tree->keyToCoord(key);
 //	ROS_WARN("x: %lf, y: %lf, z: %lf", v.x(), v.y(), v.z());
 //	octomap::OcTreeKey key2 = object_tree->coordToKey(0.04,0,0);
@@ -387,6 +388,18 @@ int main(int argc, char** argv)
 				ROS_ASSERT(co_object.primitive_poses.size() > 0);
 				co_object.primitive_poses[0].position.x = object_in_map_frame.pose.position.x;
 				co_object.primitive_poses[0].position.y = object_in_map_frame.pose.position.y;
+
+//				// debug, showing all objects positions
+//				moveit_msgs::CollisionObject can = co_object;
+//				std::stringstream aa;
+//				aa << "l" << l << "w" << w;
+//				can.id = can.id + aa.str();
+//				ROS_INFO("id: %s", can.id.c_str());
+//				planning_scene.processCollisionObjectMsg(can);
+//				planning_scene.getPlanningSceneMsg(ps_msg);
+//				pub_ps.publish(ps_msg);
+//				ros::spinOnce();
+
 				planning_scene.processCollisionObjectMsg(co_object);
 				grasps_goal.collision_object = co_object;
 				generate_grasps.sendGoal(grasps_goal);
@@ -402,7 +415,7 @@ int main(int argc, char** argv)
 					if (generate_grasps.getResult()->grasps[g].grasp_pose.pose.position.z == co_object.primitive_poses[0].position.z)
 						grasps.push_back(generate_grasps.getResult()->grasps[g]);
 				}
-				ROS_INFO("Number of grasps to be checked: %lu", grasps.size());
+//				ROS_INFO("Number of grasps to be checked: %lu", grasps.size());
 			}
 
 			// loop through all inverse capabilities
@@ -415,7 +428,7 @@ int main(int argc, char** argv)
 				if (progress > progressLimiter)
 				{
 					progressLimiter = progress + 0.1;
-					printf("progress: %3.2f%%\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", progress);
+					printf("progress: %3.2f%%\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", progress);
 					fflush(stdout);
 				}
 
@@ -453,22 +466,16 @@ int main(int argc, char** argv)
 					std::set<double> delete_thetas;
 					for (mit = thetas.begin(); mit != thetas.end(); mit++)
 					{
-						// full collision check, check if robot is in collision with polygon using base_link as reference frame
-						// TODO Remove ROS_ASSERTS after a couple of runs
-						robot_base_in_map_frame = torso_base_transform * robot_torso_in_map_frame;
-						tf::Pose robot_base_in_map_frame1 = robot_torso_in_map_frame * torso_base_transform;
-						ROS_ASSERT(robot_base_in_map_frame1.getOrigin().getX() == robot_base_in_map_frame.getOrigin().getX());
-						ROS_ASSERT(robot_base_in_map_frame1.getOrigin().getY() == robot_base_in_map_frame.getOrigin().getY());
-						ROS_ASSERT(robot_base_in_map_frame.getOrigin().x() == robot_torso_in_map_frame.getOrigin().x() + 0.05);
-						ROS_ASSERT(robot_base_in_map_frame.getOrigin().x() == robot_torso_in_map_frame.getOrigin().x() + torso_base_transform.getOrigin().getX());
-
-//						robot_state.setVariablePosition("world_joint/x", robot_base_in_map_frame.getOrigin().x());
-//						robot_state.setVariablePosition("world_joint/y", robot_base_in_map_frame.getOrigin().y());
+						// full collision check, check if robot is in collision with polygon
+						// FIXME: when using base_footprint as reference, no symetric inv surface reachability map
 						robot_state.setVariablePosition("world_joint/x", robot_torso_in_map_frame.getOrigin().x());
 						robot_state.setVariablePosition("world_joint/y", robot_torso_in_map_frame.getOrigin().y());
 						robot_state.setVariablePosition("world_joint/theta", mit->first);
 						double torso_value = robot_torso_in_map_frame.getOrigin().z() - torso_min_height;
-						ROS_ASSERT(joint_bounds.min_position_ <= torso_value && torso_value <= joint_bounds.max_position_);
+//						ROS_WARN("bound min: %lf <= torso value: %lf <= bound max: %lf", joint_bounds.min_position_, torso_value, joint_bounds.max_position_);
+						// these bounds are a bit too harsh
+//						ROS_ASSERT(joint_bounds.min_position_ <= torso_value && torso_value <= joint_bounds.max_position_);
+						ROS_ASSERT(0.0 <= torso_value && torso_value <= 0.34);
 						robot_state.setVariablePosition("torso_lift_joint", torso_value);
 						setArmsToSide(robot_state);
 						planning_scene.setCurrentState(robot_state);
@@ -525,10 +532,6 @@ int main(int argc, char** argv)
 
 				// substract table height again, so that values are centered around table height
 				tf::Pose robot_torso = robot_torso_in_map_frame;
-//				ROS_WARN("robot_torso: (%lf, %lf) robot_base: (%lf, %lf)",
-//						robot_torso_in_map_frame.getOrigin().getX(), robot_torso_in_map_frame.getOrigin().getY(),
-//						robot_base_in_map_frame.getOrigin().getX(), robot_base_in_map_frame.getOrigin().getY());
-//				tf::Pose robot_torso = robot_base_in_map_frame;
 				tf::Vector3 v = robot_torso.getOrigin();
 				v.setZ(v.getZ() - table_height);
 				robot_torso.setOrigin(v);
@@ -563,11 +566,12 @@ int main(int argc, char** argv)
 		// Count the number of inverse capabilities
 		num_inv_cap += it->getInverseCapability().getThetasPercent().size();
 	}
+
 	table_tree.setMaximumPercent(max_percent);
     printf("done              \n");
     ROS_INFO("Maximum percent of inverse capability: %lf", max_percent);
     ROS_INFO("Number of total inverse capabilities: %lu", num_inv_cap);
-    ROS_INFO("Number of rejected poses due to grasp applicability: %lu", rejected_poses);
+    ROS_INFO("Number of rejected poses due to grasp applicability: %u", rejected_poses);
 
     if (!table_tree.writeFile(input.path_name))
     {
@@ -579,5 +583,65 @@ int main(int argc, char** argv)
     {
         ROS_INFO("Inverse Capability map written to file %s", input.path_name.c_str());
     }
+
+    ros::WallTime end_time = ros::WallTime::now();
+    ROS_INFO("Total computation time: %lf", (end_time - start_time).toSec());
+
+
+	if (logging)
+	{
+		std::ofstream logfile;
+		std::string logpath= input.path_name;
+		size_t pos = logpath.find(".icpm");
+		logpath = logpath.substr(0, pos);
+		verifyPath(logpath, ".log");
+		logfile.open(logpath.c_str());
+
+
+		logfile << "Group name is: " << table_tree.getGroupName() << std::endl;
+		logfile << "Base frame is: " << table_tree.getBaseName() << std::endl;
+		logfile << "Tip frame is: " << table_tree.getTipName() << std::endl;
+		logfile << "Resolution is: " << table_tree.getResolution() << std::endl;
+		logfile << "Theta resolution is: " << table_tree.getThetaResolution() << std::endl;
+
+
+		logfile << "Collision checking is turned " << collision_checking << std::endl;
+		logfile << "Grasp applicability is turned " << grasp_applicability << std::endl;
+		if (grasp_applicability)
+		{
+			logfile << "ik_attempts: " << ik_attempts << std::endl;
+			logfile << "ik_timeout: " << ik_timeout << std::endl;
+		}
+		logfile << "Polygon name is: " << poly_name << std::endl;
+
+		logfile << "Bounding box width : " << widthBbox << std::endl;
+		logfile << "Bounding box length: " << lengthBbox << std::endl;
+		logfile << "Bounding box center: (" << center.x << ", " << center.y << ")" << std::endl;
+
+		logfile << "Number of width  cells: " << width_cells << std::endl;
+		logfile << "Number of length cells: " << length_cells << std::endl;
+		logfile << "Number of grid   cells: " << grid_cells << std::endl;
+
+		logfile << "Number of inverse capabilities to compute: " << (unsigned int) numCapsToCompute << std::endl;
+
+	    logfile << "Maximum percent of inverse capability: " << max_percent << std::endl;
+	    logfile << "Number of total inverse capabilities: " << num_inv_cap << std::endl;
+	    logfile << "Number of rejected poses due to grasp applicability: " << rejected_poses << std::endl;
+
+	    logfile << "Total computation time (in s): " << (end_time - start_time).toSec() << std::endl;
+	    int min, hours, days, seconds;
+	    double time = (end_time - start_time).toSec() / 60 / 60 / 24;
+	    days = int((end_time - start_time).toSec() / 60 / 60 / 24);
+	    time = time - days;
+	    hours = int(time * 24);
+	    time = (time * 24) - hours;
+	    min = int(time * 60);
+	    time = (time * 60) - min;
+	    seconds = int(time * 60);
+	    logfile << "days: " << days << "\nhours: " << hours << "\nmin: " << min << "\nseconds: " << seconds;
+
+		logfile.close();
+	}
+
 
 }
