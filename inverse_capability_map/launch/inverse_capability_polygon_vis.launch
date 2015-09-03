@@ -1,6 +1,6 @@
 <launch>
     <!-- name of polygon without ending -->
-    <arg name="poly_name" value="table1" />
+    <arg name="poly_name" value="table2" />
 
     <!-- select group_name: left_arm or right_arm or combined-->
     <arg name="group_name" value="right_arm" />
@@ -17,8 +17,8 @@
     <arg name="y1" value="-3.0" />
     <arg name="y2" value="3.0" />
     
-    <arg name="z1" value="0.0" />
-    <arg name="z2" value="0.0" />
+    <arg name="z1" value="-1.0" />
+    <arg name="z2" value="1.0" />
     
 	<!-- only showing arrows of torso position with a percentage over min_percent variable -->
     <arg name="min_percent" value="0" />

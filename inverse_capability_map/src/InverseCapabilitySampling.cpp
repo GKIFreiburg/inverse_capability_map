@@ -189,7 +189,11 @@ std::pair<double, double> InverseCapabilitySampling::computeZSamplingRange(const
 
 	double torso_to_max = joint_bounds.max_position_ - *torso_joint_value;
 	double torso_to_min = joint_bounds.min_position_ - *torso_joint_value; // negative values
-//	ROS_WARN("joint min bound: %lf, torso joint value: %lf", joint_bounds.min_position_, *torso_joint_value);
+	if (torso_to_min > 0.001)
+	{
+		ROS_ERROR("joint min bound: %lf, torso joint value: %lf", joint_bounds.min_position_, *torso_joint_value);
+		ROS_ERROR("torso_to_min: joint min bound - torso joint value: %lf", torso_to_min);
+	}
 	ROS_ASSERT(torso_to_min < 0.001);
 
 	double z_max_sample = z_offset + torso_to_max;
@@ -264,6 +268,11 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::sampleTorsoPos
 	unsigned int index;
 	// generate random number between 0 and size
 	index = rand() % inv_cap.getThetasPercent().size();
+	double theta_range = 2 * M_PI / tree->getThetaResolution();
+	// theta_noise in range of [-0.19625, 0.19625) for theta_resolution = 16
+	double theta_noise = theta_range * drand48() - theta_range / 2;
+	ROS_ASSERT(-theta_range/2 <= theta_noise && theta_noise < theta_range/2);
+
 	// copy thetas into vector to access them by operator[]
 	std::vector<double> thetas;
 	std::map<double, double>::const_iterator it;
@@ -277,7 +286,7 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::sampleTorsoPos
 	pose.pose.position.y = y;
 	pose.pose.position.z = z;
 	tf::Quaternion q;
-	q.setRPY(0, 0, thetas[index]);
+	q.setRPY(0, 0, thetas[index] + theta_noise);
 	tf::quaternionTFToMsg(q, pose.pose.orientation);
 	double percent = inv_cap.getThetaPercent(thetas[index]);
 

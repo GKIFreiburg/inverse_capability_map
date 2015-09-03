@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_planning
   tidyup_pr2_moveit_config # dependency due to launch file (robot description)
+  grasp_provider
+  tidyup_utils
 )
 
 find_package(eigen REQUIRED)

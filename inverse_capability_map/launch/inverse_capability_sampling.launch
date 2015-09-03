@@ -12,7 +12,7 @@ entire planner -->
 			==> samples are spread around table -->
 	<arg name="min_percent_of_max" value="0" />
 	<!-- if apply_negative_update = false, only best samples are taken -->
-	<arg name="apply_negative_update" value="false" />
+	<arg name="apply_negative_update" value="true" />
 
 
     <!-- name of polygon without ending -->

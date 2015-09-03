@@ -3,16 +3,16 @@
     <arg name="poly_name" value="table2" />
   
     <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="right_arm" />
+    <arg name="group_name" value="left_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
-    <arg name="r" value="0.1" />
+    <arg name="r" value="0.05" />
 	<!-- theta resolution -->
 	<arg name="t" value="16" />
             
-    <arg name="collision_checking" value="false" />
+    <arg name="collision_checking" value="true" />
     
-    <arg name="grasp_applicability" value="false" />
+    <arg name="grasp_applicability" value="true" />
 	    <arg name="ik_attempts" value="3" />
         <arg name="ik_timeout" value="0.1" />
 
@@ -31,7 +31,7 @@
 	</include>
 
     <node pkg="inverse_capability_map_generator" type="inverse_capability_polygon_generator"
-    	name="inverse_capability_polygon_generator_$(arg poly_name)_$(arg group_name)"
+    	name="table2_left_arm_5"
     	args="-p $(arg path_name) -o $(arg path_inv_obj)
     	-i $(arg path_poly)
     	-r $(arg r)"

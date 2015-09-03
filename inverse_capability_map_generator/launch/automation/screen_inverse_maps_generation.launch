@@ -1,0 +1,66 @@
+<!-- -->
+<launch>
+    <!-- run on m1 -->
+    <node pkg="screenrun" type="screenrun" name="screenrun_m1" args="b" required="true">
+        <rosparam param="programs">
+            -
+                name: core
+                commands:
+                    - roscore\015
+            -
+                name: grasp_provider
+                commands:
+                    - roslaunch grasp_provider grasp_provider_pr2.launch
+            <!-- TABLE1 -->
+            -
+                name: table1_right_arm_10.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table1_right_arm_10.launch
+            -
+                name: table1_right_arm_5.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table1_right_arm_5.launch
+            -
+                name: table1_right_arm_25.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table1_right_arm_25.launch
+            -
+                name: table1_left_arm_10.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table1_left_arm_10.launch
+            -
+                name: table1_left_arm_5.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table1_left_arm_5.launch
+            -
+                name: table1_left_arm_25.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table1_left_arm_25.launch
+            <!-- TABLE2 -->
+            -
+                name: table2_right_arm_10.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table2_right_arm_10.launch
+            -
+                name: table2_right_arm_5.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table2_right_arm_5.launch
+            -
+                name: table2_right_arm_25.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table2_right_arm_25.launch
+            -
+                name: table2_left_arm_10.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table2_left_arm_10.launch
+            -
+                name: table2_left_arm_5.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table2_left_arm_5.launch
+            -
+                name: table2_left_arm_25.launch
+                commands:
+                    - roslaunch inverse_capability_map_generator table2_left_arm_25.launch
+        </rosparam>
+    </node>
+</launch>

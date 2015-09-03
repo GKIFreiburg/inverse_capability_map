@@ -180,7 +180,9 @@ int main(int argc, char** argv )
 	co.id = "surface";
 	co.header.frame_id = planning_scene.getPlanningFrame();
 	co.header.stamp = ros::Time::now();
-	shape_msgs::Mesh mesh = polygon::createMeshFromPolygon(*poly, 0.0, 0.03);
+	double table_height = poly->points[0].z;
+	// returned mesh is centered in the origin (0, 0), the pose defines the position and rotation
+	shape_msgs::Mesh mesh = polygon::createMeshFromPolygon(*poly, - table_height, 0.03);
 	co.meshes.push_back(mesh);
 	// pose position (0, 0, 0), orientation (0, 0, 0, 1)
 	geometry_msgs::Pose pose = geometry_msgs::Pose();

@@ -17,16 +17,16 @@ void verifyInput(const std::vector<double>& rectangle, const std::vector<double>
         exit(1);
     }
 
-    if (rectangle.size() != 2 && rectangle.size() != 0)
+    if (rectangle.size() != 3 && rectangle.size() != 0)
     {
-        ROS_ERROR("Error: Primitive rectangle was not defined properly. Please enter width and length.");
+        ROS_ERROR("Error: Primitive rectangle was not defined properly. Please enter height, width and length.");
         ros::shutdown();
         exit(1);
     }
 
     else if (circle.size() > 2)
     {
-        ROS_ERROR("Error: Primitive circle was not defined properly. Please enter radius (optional: number of points).");
+        ROS_ERROR("Error: Primitive circle was not defined properly. Please enter height and radius (optional: number of points).");
         ros::shutdown();
         exit(1);
     }
@@ -43,18 +43,18 @@ int main(int argc, char** argv)
                                              Example: -p mydir/mysubdir/filename.poly", true, "./polygon.poly", "string");
 
     std::string msg;
-    msg = "Specify the shape of a rectangle, first width in m and then height in m.\n"
-    		"Example: -r -2.13 -r 1.02";
+    msg = "Specify the shape of a rectangle, first the width in m, then the length in m followed by the height in m.\n"
+    		"Example: -r -2.13 -r 1.02 -r 0.9";
     TCLAP::MultiArg<double> rectangleArg("r", "rectanlge", msg, false, "floating point");
 
-    msg = "Specify the shape of a circle. First parameter defines the radius in m, the second is optional and defines the number"
+    msg = "Specify the shape of a circle. First parameter defines the radius in m then the height in m, the last parameter is optional and defines the number"
     		"of points used to approximate the circle.\n"
-    		"Example: -c 1.5 OR -c 1.5 -c 30";
+    		"Example: -c 1.5 -c 0.7 OR -c 1.5 -c 0.7 -c 30";
     TCLAP::MultiArg<double> circleArg("c", "circle", msg, false, "floating point");
 
     msg = "Specify the padding around the primitive\n"
     		"Example: -d 0.1";
-    TCLAP::ValueArg<double> paddingArg("d", "padding", msg, false, 0.1, "floating point");
+    TCLAP::ValueArg<double> paddingArg("d", "padding", msg, false, 0.0, "floating point");
 
     cmd.add(rectangleArg);
     cmd.add(circleArg);
@@ -94,14 +94,14 @@ int main(int argc, char** argv)
     Primitive* primitive;
     if (rectangle.size() != 0)
     {
-    	primitive = new Rectangle(rectangle[0], rectangle[1], padding);
+    	primitive = new Rectangle(rectangle[0], rectangle[1], rectangle[2], padding);
     }
     else if (circle.size() != 0)
     {
     	if (circle.size() == 1)
-    		primitive = new Circle(circle[0], padding);
+    		primitive = new Circle(circle[0], circle[1], padding);
     	else // circle size == 2
-    		primitive = new Circle(circle[0], circle[1],  padding);
+    		primitive = new Circle(circle[0], circle[1], circle[2], padding);
     }
 
     geometry_msgs::Polygon polygon = primitive->createPolygon();
