@@ -149,10 +149,11 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 
 double InverseCapabilitySampling::getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name)
 {
-	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(link_name);
-	tf::Transform t;
-	tf::transformEigenToTF(e, t);
-	return (double)t.getOrigin().z();
+	return robot_state.getVariablePosition("torso_lift_joint") + 0.802;
+//	Eigen::Affine3d e = robot_state.getGlobalLinkTransform(link_name);
+//	tf::Transform t;
+//	tf::transformEigenToTF(e, t);
+//	return (double)t.getOrigin().z();
 }
 
 
