@@ -1,0 +1,25 @@
+Group name is: right_arm
+Base frame is: torso_lift_link
+Tip frame is: r_wrist_roll_link
+Resolution is: 0.05
+Theta resolution is: 16
+Collision checking is turned 1
+Grasp applicability is turned 1
+ik_attempts: 3
+ik_timeout: 0.1
+Polygon name is: table1
+Bounding box width : 1.4
+Bounding box length: 0.65
+Bounding box center: (0, 0)
+Number of width  cells: 28
+Number of length cells: 13
+Number of grid   cells: 364
+Number of inverse capabilities to compute: 20472144
+Maximum percent of inverse capability: 67.7971
+Number of total inverse capabilities: 106717
+Number of rejected poses due to grasp applicability: 1445744
+Total computation time (in s): 514424
+days: 5
+hours: 22
+min: 53
+seconds: 43
