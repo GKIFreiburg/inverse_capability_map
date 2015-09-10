@@ -428,7 +428,7 @@ int main(int argc, char** argv)
 				if (progress > progressLimiter)
 				{
 					progressLimiter = progress + 0.1;
-					printf("progress: %3.2f%%\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", progress);
+					printf("progress: %3.2f%%\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", progress);
 					fflush(stdout);
 				}
 
