@@ -1,9 +1,9 @@
 <launch>
     <!-- polygon name without ending -->
-    <arg name="poly_name" value="table1_padding_0.1" />
+    <arg name="poly_name" value="table1" />
        
     <!-- resolution in m (0.1, 0.05, 0.025) -->
-    <arg name="r" value="0.1" />
+    <arg name="r" value="0.05" />
 	<!-- theta resolution -->
 	<arg name="t" value="16" />
 	
