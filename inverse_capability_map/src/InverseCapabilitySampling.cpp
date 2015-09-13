@@ -5,8 +5,7 @@
 
 InverseCapabilitySampling* InverseCapabilitySampling::instance = NULL;
 
-InverseCapabilitySampling::InverseCapabilitySampling(long int seed) :
-		check_robot_in_map_(false)
+InverseCapabilitySampling::InverseCapabilitySampling(long int seed)
 {
     if(seed == 0)
         srand48(time(NULL));
@@ -20,7 +19,6 @@ InverseCapabilitySampling::InverseCapabilitySampling(long int seed) :
 	{
 		ROS_ERROR("InverseCapabilitySampling::%s: Could not subscribe to service: %s",
 				__func__, get_map_client.getService().c_str());
-		check_robot_in_map_ = false;
 	}
 
 	nav_msgs::GetMap srv;
@@ -28,11 +26,15 @@ InverseCapabilitySampling::InverseCapabilitySampling(long int seed) :
 	{
 		ROS_ERROR("InverseCapabilitySampling::%s: %s request failed.",
 				__func__, get_map_client.getService().c_str());
-		check_robot_in_map_ = false;
 	}
 
-	check_robot_in_map_ = true;
 	map_ = srv.response.map;
+
+	ros::NodeHandle nhPriv("~");
+	nhPriv.param("map_checks", map_checks_, true);
+	nhPriv.param("collision_checks", collision_checks_, true);
+	ROS_WARN("MAP CHECKS IS %s", map_checks_ ? "true" : "false");
+	ROS_WARN("COLLISION CHECKS IS %s", collision_checks_ ? "true" : "false");
 }
 
 InverseCapabilitySampling::~InverseCapabilitySampling()
@@ -99,31 +101,37 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 
 		PosePercent torso_pose_in_map_frame = instance->transformPosePercentInMap(torso_pose_in_surface_frame, surface_pose);
 
-		PosePercent base_pose;
-		// if true, robot is in collision and skip that pose + convert sampled pose to base pose!
-		// the reason why 3d collision check is done before 2d map check
-		if (instance->robotInCollision(planning_scene, torso_pose_in_map_frame, tree->getBaseName(), base_pose))
-			continue;
+		// x and y are converted into base frame for collision checks and map checks
+		PosePercent base_pose_with_torso_height = instance->transformTorsoFrameIntoBaseFrame(planning_scene, tree->getBaseName(), torso_pose_in_map_frame);
 
-		// if no 2d cost map can be loaded, skip this check
-		if (check_robot_in_map_)
+		// if no 2d cost map can be loaded, or if map_checks is set to false skip this check
+		if (map_.header.frame_id != "" && map_checks_)
 		{
 			// if true, robot pose is outside = an invalid pose
-			if (instance->robotOutsideMap(base_pose))
+			if (instance->robotOutsideMap(base_pose_with_torso_height))
 				continue;
 		}
+
+		// if collision_checks_ is set to false, skip this check (only purpose for taking screenshots)
+		if (collision_checks_)
+		{
+			// if true, robot is in collision and skip that pose
+			if (instance->robotInCollision(planning_scene, base_pose_with_torso_height))
+				continue;
+		}
+
 
 		double mahalanobis_distance = 1.0;
 		if (samples.size() != 0)
 		{
 			// compute mahalanobis distance to each drawn sample, to determine if new drawn pose is close to a sample,
 			// if so punish new sample by decreasing percent
-			mahalanobis_distance = instance->computeMahalanobisDistance(base_pose, samples, covariance);
+			mahalanobis_distance = instance->computeMahalanobisDistance(base_pose_with_torso_height, samples, covariance);
 			// ROS_INFO("mahalanobis_distance: %lf", mahalanobis_distance);
 
 			// this condition is needed so that it is possible to return an empty sampled pose
 			// because there are enough samples drawn - the region is grounded out!
-			if (base_pose.percent * mahalanobis_distance < minimum_percent)
+			if (base_pose_with_torso_height.percent * mahalanobis_distance < minimum_percent)
 			{
 				// ROS_INFO("base_pose_percent: %lf *  maha: %lf < minimum_percent: %lf", base_pose.percent, mahalanobis_distance, minimum_percent);
 				i++;
@@ -134,8 +142,8 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 		}
 
 		// pose is fine, check for better pose and increase number of valid poses
-		if (base_pose.percent * mahalanobis_distance > result.percent)
-			result = base_pose;
+		if (base_pose_with_torso_height.percent * mahalanobis_distance > result.percent)
+			result = base_pose_with_torso_height;
 		i++;
 	}
 
@@ -319,8 +327,10 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::transformPoseP
 	return ret;
 }
 
-bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePtr& planning_scene,
-		const PosePercent& sampled_pose, const std::string& base_name, PosePercent& base_pose)
+InverseCapabilitySampling::PosePercent InverseCapabilitySampling::transformTorsoFrameIntoBaseFrame(
+		const planning_scene::PlanningScenePtr& planning_scene,
+		const std::string& base_name,
+		const PosePercent& sampled_pose)
 {
 	moveit::core::RobotState new_robot_state = planning_scene->getCurrentStateNonConst();
 
@@ -336,6 +346,7 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 	const moveit::core::JointModel* torso_joint =  torso_link->getParentJointModel();
 	double torso_joint_value = new_robot_state.getVariablePosition(torso_joint->getName());
 	new_robot_state.setVariablePosition(torso_joint->getName(), torso_joint_value + torso_old_new_offset);
+	new_robot_state.updateLinkTransforms();
 
 	// look up torso base_link transform
 	ROS_ASSERT(torso_link->getName() == base_name);
@@ -360,17 +371,31 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 	geometry_msgs::Pose map_base_pose;
 	tf::poseTFToMsg(map_base_transform, map_base_pose);
 
+	PosePercent result;
+	result.percent = sampled_pose.percent;
+	result.pose.header.frame_id = sampled_pose.pose.header.frame_id;
+	result.pose.pose = map_base_pose;
+	result.pose.pose.position.z = sampled_pose.pose.pose.position.z;
+
+	return result;
+}
+
+bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePtr& planning_scene,
+		const PosePercent& sampled_pose)
+{
 	geometry_msgs::Pose2D base;
 	// old code: transform added by hand
 	//	base.x = sampled_pose.pose.pose.position.x + torso_base_transform.getOrigin().getX();
 	//	base.y = sampled_pose.pose.pose.position.y + torso_base_transform.getOrigin().getY();
-	base.x = map_base_pose.position.x;
-	base.y = map_base_pose.position.y;
+	base.x = sampled_pose.pose.pose.position.x;
+	base.y = sampled_pose.pose.pose.position.y;
 
 //	ROS_WARN("sampled pose: [%lf, %lf], base pose: [%lf, %lf]", sampled_pose.pose.pose.position.x, sampled_pose.pose.pose.position.y, base.x, base.y);
 	tf::Quaternion q;
 	tf::quaternionMsgToTF(sampled_pose.pose.pose.orientation, q);
 	base.theta = tf::getYaw(q);
+
+	moveit::core::RobotState new_robot_state = planning_scene->getCurrentStateNonConst();
 
 	// full collision check, check if robot is in collision with polygon using base_link as reference frame
 	new_robot_state.setVariablePosition("world_joint/x", base.x);
@@ -381,14 +406,6 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 	collision_detection::CollisionResult collision_result;
 	collision_result.clear();
 	planning_scene->checkCollision(collision_request, collision_result, new_robot_state);
-
-	// convert 2D pose into PosePercent
-	base_pose = sampled_pose;
-	base_pose.pose.pose.position.x = base.x;
-	base_pose.pose.pose.position.y = base.y;
-	tf::Quaternion orientation = tf::createQuaternionFromYaw(base.theta);
-	tf::quaternionTFToMsg(orientation, base_pose.pose.pose.orientation);
-	base_pose.percent = sampled_pose.percent;
 
 	bool inCollision = false;
 	if (collision_result.collision)

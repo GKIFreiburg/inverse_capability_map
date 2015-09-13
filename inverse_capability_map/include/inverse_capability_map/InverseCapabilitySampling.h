@@ -42,6 +42,10 @@ class InverseCapabilitySampling
 	 *  Return Value:
 	 *  	- PosePercent: a geometry_msgs::PoseStamped around the surface with an additional double, representing
 	 *  			   the reachability on the surface
+	 *  		For the PoseStamped:
+	 *  				- x and y correspond to the base of the robot (base_link)
+	 *  				- z contains the height from the ground to the torso
+	 *  				- the orientation represents the orientation of the torso
 	 */
 	static PosePercent drawBestOfXSamples(planning_scene::PlanningScenePtr& planning_scene,
 			const InverseCapabilityOcTree* tree,
@@ -97,14 +101,20 @@ class InverseCapabilitySampling
 	PosePercent transformPosePercentInMap(const PosePercent& torso_pose_in_surface,
 			const geometry_msgs::PoseStamped& surface_pose_in_map);
 
+	// Input: planning_scene for robot transforms, base frame name (torso_lift_link) and sampled_pose
+	// Output: Pose Percent with x, y in base frame an z represent torso height from the ground floor
+	//			The orientation represents the orientation of the torso frame
+	PosePercent transformTorsoFrameIntoBaseFrame(const planning_scene::PlanningScenePtr& planning_scene,
+			const std::string& base_name,
+			const PosePercent& sampled_pose);
+
 	// First set robot state before performing collision checks
 	// Input: planning_scene, torso pose in map frame and torso link name
 	// Output: base pose with percentage and convert sampled pose to base frame!
 	// returned base_pose is in base_link frame
 	// Return true if robot is in collision, else return false
 	bool robotInCollision(planning_scene::PlanningScenePtr& planning_scene,
-			const PosePercent& sampled_pose, const std::string& base_name,
-			PosePercent& base_pose);
+			const PosePercent& sampled_pose);
 
 	// Check if robot pose is outside map, then return true
 	// Input: 2d map and the pose
@@ -114,7 +124,8 @@ class InverseCapabilitySampling
 
 	// needed by 2d map check (robotOutsideMap)
 	nav_msgs::OccupancyGrid map_;
-	bool check_robot_in_map_;
+	bool map_checks_;
+	bool collision_checks_;
 
 
 };

@@ -12,8 +12,12 @@ entire planner -->
 			==> samples are spread around table -->
 	<arg name="min_percent_of_max" value="0" />
 	<!-- if apply_negative_update = false, only best samples are taken -->
-	<arg name="apply_negative_update" value="true" />
+	<arg name="apply_negative_update" value="false" />
 
+	<!-- flags needed for taking screenshots of sampling procedure -->
+	<!-- Should be both true in general, except when taking screenshots -->
+	<arg name="map_checks" value="false"/>
+	<arg name="collision_checks" value="false"/>
 
     <!-- name of polygon without ending -->
     <arg name="poly_name" value="table1" />
@@ -39,7 +43,9 @@ entire planner -->
 		<param name="deviation_z" type="double" value="$(arg deviation_z)" />
 		<param name="deviation_theta" type="double" value="$(arg deviation_theta)" />
 		<param name="min_percent_of_max" type="double" value="$(arg min_percent_of_max)" />
-		<param name="apply_negative_update" type="bool" value="$(arg apply_negative_update)"/>
+		<param name="apply_negative_update" type="bool" value="$(arg apply_negative_update)" />
+		<param name="collision_checks" type="bool" value="$(arg collision_checks)" />
+		<param name="map_checks" type="bool" value="$(arg map_checks)" />
     </node>
 
 </launch>
