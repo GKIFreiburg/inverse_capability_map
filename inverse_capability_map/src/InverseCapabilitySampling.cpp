@@ -33,8 +33,6 @@ InverseCapabilitySampling::InverseCapabilitySampling(long int seed)
 	ros::NodeHandle nhPriv("~");
 	nhPriv.param("map_checks", map_checks_, true);
 	nhPriv.param("collision_checks", collision_checks_, true);
-	ROS_WARN("MAP CHECKS IS %s", map_checks_ ? "true" : "false");
-	ROS_WARN("COLLISION CHECKS IS %s", collision_checks_ ? "true" : "false");
 }
 
 InverseCapabilitySampling::~InverseCapabilitySampling()
