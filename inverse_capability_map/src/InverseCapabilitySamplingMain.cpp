@@ -59,6 +59,8 @@ int main(int argc, char** argv)
 	nhPriv.param("deviation_theta", dev_theta, M_PI / 4);
 	double min_percent_of_max;
 	nhPriv.param("min_percent_of_max", min_percent_of_max, 30.0);
+	double min_torso_position;
+	nhPriv.param("min_torso_position", min_torso_position, 0.012);
 	bool apply_negative_update;
 	nhPriv.param("apply_negative_update", apply_negative_update, true);
 
@@ -69,6 +71,7 @@ int main(int argc, char** argv)
 	ROS_INFO("Deviation in z: %lf", dev_z);
 	ROS_INFO("Deviation in theta: %lf", dev_theta);
 	ROS_INFO("min_percent_of_max: %lf", min_percent_of_max);
+	ROS_INFO("min_torso_position: %lf", min_torso_position);
 	ROS_INFO("apply_negative_update: %s", apply_negative_update ? "true" : "false");
 
 	std::string table_name;
@@ -224,7 +227,7 @@ int main(int argc, char** argv)
 		if (i % (numberOfIterations/10) == 0)
 			ROS_WARN("Number of performed iterations: %d", i);
 		InverseCapabilitySampling::PosePercent sample = InverseCapabilitySampling::drawBestOfXSamples(
-				planning_scene, tree, table_pose, numberOfDraws, samples, covariance, min_percent_of_max);
+				planning_scene, tree, table_pose, numberOfDraws, samples, covariance, min_percent_of_max, min_torso_position);
 		if (sample.percent == 0)
 		{
 			count_grounded_out++;

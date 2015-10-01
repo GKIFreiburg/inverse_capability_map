@@ -11,16 +11,18 @@ entire planner -->
 	<!-- if min_percent_of_max = 0 and appy_negative_update = true
 			==> samples are spread around table -->
 	<arg name="min_percent_of_max" value="0" />
+	<!-- set a minimum torso position, that torso joint should not fall below -->
+	<arg name="min_torso_position" value="0.15" />
 	<!-- if apply_negative_update = false, only best samples are taken -->
 	<arg name="apply_negative_update" value="false" />
 
 	<!-- flags needed for taking screenshots of sampling procedure -->
 	<!-- Should be both true in general, except when taking screenshots -->
-	<arg name="map_checks" value="false"/>
-	<arg name="collision_checks" value="false"/>
+	<arg name="map_checks" value="true"/>
+	<arg name="collision_checks" value="true"/>
 
     <!-- name of polygon without ending -->
-    <arg name="poly_name" value="table1" />
+    <arg name="poly_name" value="table2" />
 
     <!-- select group_name: left_arm or right_arm or combined-->
     <arg name="group_name" value="combined" />
@@ -43,6 +45,7 @@ entire planner -->
 		<param name="deviation_z" type="double" value="$(arg deviation_z)" />
 		<param name="deviation_theta" type="double" value="$(arg deviation_theta)" />
 		<param name="min_percent_of_max" type="double" value="$(arg min_percent_of_max)" />
+		<param name="min_torso_position" type="double" value="$(arg min_torso_position)" />
 		<param name="apply_negative_update" type="bool" value="$(arg apply_negative_update)" />
 		<param name="collision_checks" type="bool" value="$(arg collision_checks)" />
 		<param name="map_checks" type="bool" value="$(arg map_checks)" />

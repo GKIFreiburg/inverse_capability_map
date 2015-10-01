@@ -4,6 +4,7 @@
 #include <angles/angles.h>
 
 InverseCapabilitySampling* InverseCapabilitySampling::instance = NULL;
+const double InverseCapabilitySampling::MIN_TORSO_HEIGHT = 0.802;
 
 InverseCapabilitySampling::InverseCapabilitySampling(long int seed)
 {
@@ -46,12 +47,13 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
 			const Eigen::Matrix4d& covariance,
 			const double min_percent_of_max,
+			const double min_torso_position,
 			bool verbose,
 			long int seed)
 {
 	if (instance == NULL)
 		instance = new InverseCapabilitySampling(seed);
-	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws, samples, covariance, min_percent_of_max, verbose);
+	return instance->drawBestOfXSamples_(planning_scene, tree, surface_pose, numberOfDraws, samples, covariance, min_percent_of_max, min_torso_position, verbose);
 }
 
 InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSamples_(planning_scene::PlanningScenePtr& planning_scene,
@@ -61,6 +63,7 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples,
 			const Eigen::Matrix4d& covariance,
 			const double min_percent_of_max,
+			const double min_torso_position,
 			bool verbose)
 {
 	unsigned int i = 0;
@@ -101,6 +104,10 @@ InverseCapabilitySampling::PosePercent InverseCapabilitySampling::drawBestOfXSam
 
 		// x and y are converted into base frame for collision checks and map checks
 		PosePercent base_pose_with_torso_height = instance->transformTorsoFrameIntoBaseFrame(planning_scene, tree->getBaseName(), torso_pose_in_map_frame);
+
+		// if torso position is below given desired min_torso_position, then skip sample
+		if (base_pose_with_torso_height.pose.pose.position.z - MIN_TORSO_HEIGHT < min_torso_position)
+			continue;
 
 		// if no 2d cost map can be loaded, or if map_checks is set to false skip this check
 		if (map_.header.frame_id != "" && map_checks_)
@@ -382,9 +389,6 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 		const PosePercent& sampled_pose)
 {
 	geometry_msgs::Pose2D base;
-	// old code: transform added by hand
-	//	base.x = sampled_pose.pose.pose.position.x + torso_base_transform.getOrigin().getX();
-	//	base.y = sampled_pose.pose.pose.position.y + torso_base_transform.getOrigin().getY();
 	base.x = sampled_pose.pose.pose.position.x;
 	base.y = sampled_pose.pose.pose.position.y;
 
@@ -395,10 +399,14 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 
 	moveit::core::RobotState new_robot_state = planning_scene->getCurrentStateNonConst();
 
+	double torso_position = sampled_pose.pose.pose.position.z - MIN_TORSO_HEIGHT;
+	ROS_ASSERT(0.010 < torso_position && torso_position < 0.33);
+
 	// full collision check, check if robot is in collision with polygon using base_link as reference frame
 	new_robot_state.setVariablePosition("world_joint/x", base.x);
 	new_robot_state.setVariablePosition("world_joint/y", base.y);
 	new_robot_state.setVariablePosition("world_joint/theta", base.theta);
+	new_robot_state.setVariablePosition("torso_lift_joint", torso_position);
 
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
@@ -409,9 +417,7 @@ bool InverseCapabilitySampling::robotInCollision(planning_scene::PlanningScenePt
 	if (collision_result.collision)
 	{
 		inCollision = true;
-//		ROS_ERROR_STREAM(base_pose);
 	}
-//	ROS_INFO_STREAM(base_pose);
 
 	return inCollision;
 }

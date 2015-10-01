@@ -36,6 +36,9 @@ class InverseCapabilitySampling
 	 * 		- covariance: covariance matrix indicating how two close samples should be punished
 	 * 		- min_percent_of_max: Enter a percentage, needed to calculate a reference which is build from the
 	 * 		           maximum value in tree and as reference to eliminate new samples
+	 * 		- min_torso_position: Enter a minimum torso joint value, which the sample should not fall below
+	 * 				   (purpose: often position at the same height of the surface are sampled, which make manipulation operation
+	 * 				             difficult, therefore this parameter to set a minimum joint value)
 	 * 		- verbose: showing some additional info
 	 * 		- seed: to initialize random number generator
 	 *
@@ -54,6 +57,7 @@ class InverseCapabilitySampling
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples = std::map<std::string, geometry_msgs::PoseStamped>(),
 			const Eigen::Matrix4d& covariance = Eigen::Matrix4d(),
 			const double min_percent_of_max = 0.0,
+			const double min_torso_position = 0.012,
 			bool verbose = false,
 			long int seed = 0);
 
@@ -78,6 +82,7 @@ class InverseCapabilitySampling
 			const std::map<std::string, geometry_msgs::PoseStamped>& samples = std::map<std::string, geometry_msgs::PoseStamped>(),
 			const Eigen::Matrix4d& covariance = Eigen::Matrix4d(),
 			const double min_percent_of_max = 0.0,
+			const double min_torso_position = 0.012,
 			bool verbose = false);
 
 	double getLinkHeight(const moveit::core::RobotState& robot_state, const std::string& link_name);
@@ -124,10 +129,12 @@ class InverseCapabilitySampling
 
 	// needed by 2d map check (robotOutsideMap)
 	nav_msgs::OccupancyGrid map_;
+
+	// Parameters for taking screenshots
 	bool map_checks_;
 	bool collision_checks_;
 
-
+	static const double MIN_TORSO_HEIGHT;
 };
 
 #endif // INVERSECAPABILITYSAMPLING_H
