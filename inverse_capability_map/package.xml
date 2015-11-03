@@ -45,11 +45,32 @@
   <build_depend>std_msgs</build_depend>
   <build_depend>octomap</build_depend>
   <build_depend>visualization_msgs</build_depend>
+  <build_depend>capability_map</build_depend>
+  <build_depend>inverse_capability_map_utils</build_depend>
+  <build_depend>symbolic_planning_utils</build_depend>
+  <build_depend>moveit_msgs</build_depend>
+  <build_depend>moveit_core</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>moveit_ros_planning</build_depend>
+  <build_depend>moveit_ros_planning_interface</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>costmap_2d</build_depend>
+
   <run_depend>geometry_msgs</run_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>octomap</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>octomap</run_depend>
   <run_depend>visualization_msgs</run_depend>
+  <run_depend>capability_map</run_depend>
+  <run_depend>inverse_capability_map_utils</run_depend>
+  <run_depend>symbolic_planning_utils</run_depend>
+  <run_depend>moveit_msgs</run_depend>
+  <run_depend>moveit_core</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <run_depend>moveit_ros_planning</run_depend>
+  <run_depend>moveit_ros_planning_interface</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>costmap_2d</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
