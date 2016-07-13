@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(octomap REQUIRED)
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen3 REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -93,7 +93,7 @@ find_package(octomap REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES inverse_capability_octree inverse_capability_sampling
+  LIBRARIES ${EIGEN3_INCLUDE_DIRS}inverse_capability_octree inverse_capability_sampling
   CATKIN_DEPENDS geometry_msgs roscpp std_msgs visualization_msgs
   DEPENDS octomap
 )
@@ -107,12 +107,13 @@ catkin_package(
 include_directories(
   include
   ${OCTOMAP_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
 add_library(inverse_capability_octree src/InverseCapabilityOcTreeNode.cpp src/InverseCapabilityOcTree.cpp)
-target_link_libraries(inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES} ${EIGEN_LIBRARIES})
 
 
 add_library(inverse_capability_sampling
@@ -159,9 +160,6 @@ target_link_libraries(inverse_capability_polygon_robot_vis
   ${catkin_LIBRARIES}
 )
 
-catkin_add_gtest(InverseCapabilityTest src/InverseCapabilityTest.cpp)
-target_link_libraries(InverseCapabilityTest inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
-
 
 #############
 ## Install ##
@@ -207,6 +205,12 @@ target_link_libraries(InverseCapabilityTest inverse_capability_octree ${OCTOMAP_
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
+
+#enable_testing()
+#find_package(GTest REQUIRED)
+#include_directories(${GTEST_INCLUDE_DIRS})
+catkin_add_gtest(InverseCapabilityTest src/InverseCapabilityTest.cpp)
+target_link_libraries(InverseCapabilityTest inverse_capability_octree ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
   tf_conversions
-  eigen
+  #eigen
   visualization_msgs
   capability_map
   inverse_capability_map
@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   tidyup_utils
 )
 
-find_package(eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(octomap REQUIRED)
 
 ## System dependencies are found with CMake's conventions
