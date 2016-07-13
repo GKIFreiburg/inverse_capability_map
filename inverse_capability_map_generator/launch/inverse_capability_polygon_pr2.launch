@@ -1,25 +1,28 @@
 <launch>
     <!-- polygon name -->
-    <arg name="poly_name" value="table2" />
+    <arg name="poly_name" default="table2" />
   
     <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="right_arm" />
+    <arg name="group_name" default="right_arm" />
     
     <!-- resolution in m (0.1, 0.05, 0.025) -->
-    <arg name="r" value="0.1" />
+    <arg name="r" default="0.1" />
 	<!-- theta resolution -->
-	<arg name="t" value="16" />
+	<arg name="t" default="16" />
             
-    <arg name="collision_checking" value="false" />
+    <arg name="collision_checking" value="true" />
     
-    <arg name="grasp_applicability" value="false" />
+    <arg name="grasp_applicability" value="true" />
 	    <arg name="ik_attempts" value="3" />
         <arg name="ik_timeout" value="0.1" />
 
-	<arg name="logging" value="true" />
+	<arg name="logging" value="false" />
         
-
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
+
+	<!-- Start graps generator, for finding valid grasps on table -->
+	<include file="$(find grasp_provider)/launch/grasp_provider_pr2.launch">
+	</include>
 
     <arg name="path_poly" value="$(find primitive_to_polygon)/polygons/$(arg poly_name).poly"/>
 

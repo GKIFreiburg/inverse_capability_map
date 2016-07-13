@@ -1,15 +1,15 @@
 <launch>
     <!-- polygon name without ending -->
-    <arg name="poly_name" value="table1" />
+    <arg name="poly_name" default="table1" />
        
     <!-- resolution in m (0.1, 0.05, 0.025) -->
-    <arg name="r" value="0.05" />
+    <arg name="r" default="0.05" />
 	<!-- theta resolution -->
-	<arg name="t" value="16" />
+	<arg name="t" default="16" />
 	
     <!-- select maps by group_name: left_arm or right_arm -->
-    <arg name="map1" value="left_arm" />
-    <arg name="map2" value="right_arm" />
+    <arg name="map1" default="left_arm" />
+    <arg name="map2" default="right_arm" />
     
 	<!-- DO NOT CHANGE PARAMETERS BELOW -->
 

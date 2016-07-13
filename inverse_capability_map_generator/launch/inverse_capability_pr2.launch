@@ -1,12 +1,12 @@
 <launch>
     
     <!-- select group_name: left_arm or right_arm -->
-    <arg name="group_name" value="right_arm" />
+    <arg name="group_name" default="right_arm" />
     
     <!-- resolution in m -->
-    <arg name="r" value="0.1" />
+    <arg name="r" default="0.1" />
     <!-- theta_resolution (unsigned int) -->
-    <arg name="t" value="16" />
+    <arg name="t" default="16" />
     
 	<!-- bounding box -->   
     <arg name="x1" value="-2.0" />
