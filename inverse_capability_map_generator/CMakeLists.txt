@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   inverse_capability_map_utils
   moveit_core
   moveit_ros_planning
-  tidyup_pr2_moveit_config # dependency due to launch file (robot description)
   grasp_provider
   tidyup_utils
 )
